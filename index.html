@@ -12,18 +12,13 @@
         <h3 id="round-info">Раунд 1/5 | Ваш ход (Выберите диск)</h3>
     </header>
 
-    <!-- Инвентарь игроков -->
-    <div class="inventories" id="inventories-board">
-        <!-- Генерируется скриптом -->
-    </div>
+    <!-- Инвентари игроков (Стопки) -->
+    <div class="inventories" id="inventories-board"></div>
 
-    <!-- Зона Контрактов -->
     <div class="contracts-area" id="contracts-board"></div>
 
-    <!-- Игровое Поле -->
     <div id="game-board" class="board"></div>
 
-    <!-- Рука Игрока и Управление -->
     <div class="hand-area" id="hand-area">
         <h3>Ваша команда:</h3>
         <div id="player-disks" style="display: flex; gap: 10px;"></div>
@@ -32,8 +27,25 @@
     <button class="action-button" id="resolve-btn" onclick="resolvePhaseAsync()">🚀 ЗАПУСТИТЬ ФАЗУ ИСХОДА</button>
     <button class="action-button" id="next-round-btn" onclick="nextRound()" style="display:none; background:#27ae60;">В СЛЕДУЮЩИЙ РАУНД ➡️</button>
 
-    <!-- Лог битвы -->
     <div class="battle-log" id="battle-log"></div>
+
+    <!-- Модальное окно для Треуголки -->
+    <div id="upgrade-modal" class="modal">
+        <h3>Кого усилить (+1)?</h3>
+        <div id="upgrade-options" style="display:flex; gap:10px; justify-content:center;"></div>
+    </div>
+
+    <!-- Модальное окно для Белых драконов -->
+    <div id="color-modal" class="modal">
+        <h3>В какой цвет перекрасить?</h3>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
+            <button class="color-btn red" onclick="applyColor('red')">Красный</button>
+            <button class="color-btn green" onclick="applyColor('green')">Зеленый</button>
+            <button class="color-btn yellow" onclick="applyColor('yellow')">Желтый</button>
+            <button class="color-btn purple" onclick="applyColor('purple')">Фиолетовый</button>
+            <button class="color-btn white" onclick="document.getElementById('color-modal').style.display='none'" style="color:black;">Отмена</button>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>
