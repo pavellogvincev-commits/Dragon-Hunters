@@ -12,27 +12,27 @@ let currentTurnIndex = 0;
 
 const treasuresDb = [
     { type: 'treasure', name: "Мушкет", short: "👑/3💪", desc: "1 корона за каждые 3 силы всех ваших драконьеров" },
-    { type: 'treasure', name: "Янтарный амулет", short: "👑/🟡", desc: "1 корона за каждого желтого дракона" },
-    { type: 'treasure', name: "Желто-красный", short: "2👑/🟡🔴", desc: "2 короны за пару (Желтый+Красный)" },
+    { type: 'treasure', name: "Янтарный амулет", short: "👑/🟡", desc: "1 корона за каждый ЖЕЛТЫЙ цвет (драконы+яйца)" },
+    { type: 'treasure', name: "Желто-красный", short: "2👑/🟡🔴", desc: "2 короны за каждую пару (Желтый + Красный цвет)" },
     { type: 'treasure', name: "Драконья брошь", short: "2👑/==", desc: "2 очка за пару драконов одинаковой силы" },
-    { type: 'treasure', name: "Изумрудный", short: "👑/🟢", desc: "1 корона за каждого зеленого дракона" },
-    { type: 'treasure', name: "Фиолето-желтый", short: "2👑/🟣🟡", desc: "2 короны за пару (Фиолетовый+Желтый)" },
-    { type: 'treasure', name: "Белое яйцо", short: "🥚/⚪", desc: "Яйцо. Можно перекрасить как белого дракона" },
-    { type: 'treasure', name: "Клинок", short: "💪=👑", desc: "Очки за драконьеров одинаковой силы" },
+    { type: 'treasure', name: "Изумрудный", short: "👑/🟢", desc: "1 корона за каждый ЗЕЛЕНЫЙ цвет" },
+    { type: 'treasure', name: "Фиолето-желтый", short: "2👑/🟣🟡", desc: "2 короны за пару (Фиолетовый + Желтый цвет)" },
+    { type: 'treasure', name: "Белое яйцо", short: "🥚/⚪", desc: "Считается яйцом и сокровищем. Можно перекрасить", isEgg: true, color: 'white', isOriginallyWhite: true },
+    { type: 'treasure', name: "Клинок", short: "💪=👑", desc: "Очки за драконьеров одинаковой силы (две 8ки = 8 оч)" },
     { type: 'treasure', name: "Кубок", short: "👑/🎁", desc: "1 корона за каждое сокровище" },
     { type: 'treasure', name: "Корона", short: "3👑/📜", desc: "3 короны за каждый выполненный контракт" },
-    { type: 'treasure', name: "Маска", short: "+3 👑", desc: "Дает 3 короны" },
+    { type: 'treasure', name: "Маска", short: "+3 👑", desc: "Дает 3 короны просто так" },
     { type: 'treasure', name: "Рюкзак", short: "👑/🥚", desc: "1 корона за каждое яйцо" },
-    { type: 'treasure', name: "Аметистовый", short: "👑/🟣", desc: "1 корона за каждого фиолетового дракона" },
-    { type: 'treasure', name: "Скрижаль", short: "3👑/🐉🥚", desc: "3 короны за пару дракон+яйцо одинакового цвета" },
+    { type: 'treasure', name: "Аметистовый", short: "👑/🟣", desc: "1 корона за каждый ФИОЛЕТОВЫЙ цвет" },
+    { type: 'treasure', name: "Скрижаль", short: "3👑/🐉🥚", desc: "3 короны за пару (Дракон + Яйцо) ОДНОГО цвета" },
     { type: 'treasure', name: "Древний фолиант", short: "6👑/5🎁", desc: "6 корон за каждые 5 сокровищ" },
-    { type: 'treasure', name: "Красно-зеленый", short: "2👑/🔴🟢", desc: "2 короны за пару (Красный+Зеленый)" },
-    { type: 'treasure', name: "Зел-Фиолетовый", short: "2👑/🟢🟣", desc: "2 короны за пару (Зеленый+Фиолетовый)" },
-    { type: 'treasure', name: "Драконий череп", short: "2👑/3🐉", desc: "2 короны за любых 3 дракона" },
-    { type: 'treasure', name: "Рубиновый", short: "👑/🔴", desc: "1 корона за каждого красного дракона" },
-    { type: 'treasure', name: "Призма", short: "5👑/🌈", desc: "5 корон за набор из 4 драконов разных цветов" },
+    { type: 'treasure', name: "Красно-зеленый", short: "2👑/🔴🟢", desc: "2 короны за пару (Красный + Зеленый цвет)" },
+    { type: 'treasure', name: "Зел-Фиолетовый", short: "2👑/🟢🟣", desc: "2 короны за пару (Зеленый + Фиолетовый цвет)" },
+    { type: 'treasure', name: "Драконий череп", short: "2👑/3🐉", desc: "2 короны за любых 3 пойманных дракона" },
+    { type: 'treasure', name: "Рубиновый", short: "👑/🔴", desc: "1 корона за каждый КРАСНЫЙ цвет" },
+    { type: 'treasure', name: "Призма", short: "5👑/🌈", desc: "5 корон за набор из 4 разных цветов" },
     { type: 'treasure', name: "Глобус", short: "3👑(7💪)", desc: "3 короны за диск силой 7, или 5 за диск 8" },
-    { type: 'treasure', name: "Скарабей", short: "2👑/⚪", desc: "2 короны за каждого пойманного белого дракона" },
+    { type: 'treasure', name: "Скарабей", short: "2👑/⚪", desc: "2 короны за каждого пойманного белого (сохраняется при перекраске)" },
     { type: 'treasure', name: "Песочные часы", short: "6👑/5🥚", desc: "6 корон за каждые 5 яиц" }
 ];
 
@@ -79,11 +79,93 @@ function initDecks() {
     decks.treasures = shuffle(JSON.parse(JSON.stringify(treasuresDb)));
 }
 
+// === ЯДРО ЖИВОГО ПОДСЧЕТА ОЧКОВ ===
+function getLiveScores() {
+    let results = {}; let maxTeamPower = 0;
+
+    for(let id in gameState.players) {
+        let p = gameState.players[id]; let teamPower = p.powers.reduce((a,b) => a+b, 0);
+        if(teamPower > maxTeamPower) maxTeamPower = teamPower;
+
+        let dragPts = p.trophies.filter(t=>t.type==='dragon').reduce((sum, d) => sum + d.crowns, 0);
+        let contPts = gameState.contracts.filter(c=>c.winner===id).reduce((sum, c) => sum + c.points, 0);
+        results[id] = {id, name: p.name, pObj: p, teamPower, dragPts, contPts, trPts: 0, bonusPts: 0, total: 0};
+    }
+
+    // Предварительный расчет "Больше всех"
+    let majC = gameState.contracts.find(c => c.type === 'majority');
+    if(majC) {
+        let maxC = 0;
+        for(let id in results) {
+            let count = results[id].pObj.trophies.filter(t=>t.color===majC.color).length;
+            results[id].majCount = count;
+            if(count > maxC) maxC = count;
+        }
+        if(maxC > 0) {
+            for(let id in results) if(results[id].majCount === maxC) results[id].contPts += majC.points;
+        }
+    }
+
+    // Предварительный расчет Сокровищ и Бонуса Силы
+    for(let id in results) {
+        let r = results[id];
+        if(r.teamPower === maxTeamPower) r.bonusPts = 6;
+        let trs = r.pObj.trophies.filter(t=>t.type==='treasure');
+        let drags = r.pObj.trophies.filter(t=>t.type==='dragon');
+        let eggs = r.pObj.trophies.filter(t=>t.type==='egg' || t.isEgg);
+
+        let cRed = r.pObj.trophies.filter(t=>t.color==='red').length;
+        let cGre = r.pObj.trophies.filter(t=>t.color==='green').length;
+        let cYel = r.pObj.trophies.filter(t=>t.color==='yellow').length;
+        let cPur = r.pObj.trophies.filter(t=>t.color==='purple').length;
+        let cWhiteOrig = r.pObj.trophies.filter(t=>t.isOriginallyWhite).length;
+
+        trs.forEach(tr => {
+            if(tr.name === "Мушкет") r.trPts += Math.floor(r.teamPower / 3);
+            if(tr.name === "Янтарный амулет") r.trPts += cYel;
+            if(tr.name === "Желто-красный") r.trPts += Math.min(cYel, cRed) * 2;
+            if(tr.name === "Драконья брошь") { let pCnts = {}; drags.forEach(d=>{ pCnts[d.power] = (pCnts[d.power]||0)+1; }); for(let p in pCnts) r.trPts += Math.floor(pCnts[p]/2)*2; }
+            if(tr.name === "Изумрудный") r.trPts += cGre;
+            if(tr.name === "Фиолето-желтый") r.trPts += Math.min(cPur, cYel)*2;
+            if(tr.name === "Белое яйцо") r.trPts += 0; 
+            if(tr.name === "Клинок") { let pCnts = {}; r.pObj.powers.forEach(p=>{ pCnts[p] = (pCnts[p]||0)+1; }); for(let p in pCnts) if(pCnts[p] >= 2) r.trPts += parseInt(p); }
+            if(tr.name === "Кубок") r.trPts += trs.length;
+            if(tr.name === "Корона") r.trPts += gameState.contracts.filter(c=>c.winner===r.id).length * 3;
+            if(tr.name === "Маска") r.trPts += 3;
+            if(tr.name === "Рюкзак") r.trPts += eggs.length;
+            if(tr.name === "Аметистовый") r.trPts += cPur;
+            if(tr.name === "Скрижаль") { 
+                let dRed = drags.filter(d=>d.color==='red').length, eRed = eggs.filter(e=>e.color==='red').length;
+                let dGre = drags.filter(d=>d.color==='green').length, eGre = eggs.filter(e=>e.color==='green').length;
+                let dYel = drags.filter(d=>d.color==='yellow').length, eYel = eggs.filter(e=>e.color==='yellow').length;
+                let dPur = drags.filter(d=>d.color==='purple').length, ePur = eggs.filter(e=>e.color==='purple').length;
+                r.trPts += (Math.min(dRed, eRed) + Math.min(dGre, eGre) + Math.min(dYel, eYel) + Math.min(dPur, ePur)) * 3; 
+            }
+            if(tr.name === "Древний фолиант") r.trPts += Math.floor(trs.length / 5) * 6;
+            if(tr.name === "Красно-зеленый") r.trPts += Math.min(cRed, cGre) * 2;
+            if(tr.name === "Зел-Фиолетовый") r.trPts += Math.min(cGre, cPur) * 2;
+            if(tr.name === "Драконий череп") r.trPts += Math.floor(drags.length / 3) * 2;
+            if(tr.name === "Рубиновый") r.trPts += cRed;
+            if(tr.name === "Призма") r.trPts += Math.min(cRed, cGre, cYel, cPur) * 5;
+            if(tr.name === "Глобус") { if(r.pObj.powers.includes(8)) r.trPts+=5; else if(r.pObj.powers.includes(7)) r.trPts+=3; }
+            if(tr.name === "Скарабей") r.trPts += cWhiteOrig * 2;
+            if(tr.name === "Песочные часы") r.trPts += Math.floor(eggs.length / 5) * 6;
+        });
+        r.total = r.dragPts + r.contPts + r.trPts + r.bonusPts;
+    }
+    return results;
+}
+
 function renderInventories() {
+    let currentScores = getLiveScores(); // Получаем свежие очки!
     let html = '';
+    
     for (let [id, p] of Object.entries(gameState.players)) {
         let stacks = { red: [], green: [], yellow: [], purple: [], white: [], treasures: [] };
-        p.trophies.forEach(t => { if(t.type === 'treasure') stacks.treasures.push(t); else if(t.color) stacks[t.color].push(t); });
+        p.trophies.forEach(t => { 
+            if(t.type === 'treasure') stacks.treasures.push(t); 
+            if(t.color) stacks[t.color].push(t); 
+        });
 
         let stacksHtml = '';
         ['red', 'green', 'yellow', 'purple', 'white'].forEach(color => {
@@ -92,8 +174,12 @@ function renderInventories() {
             stacks[color].forEach((item, index) => {
                 let isW = (color === 'white' && id === 'blue') ? 'cursor:pointer;' : '';
                 let clk = (color === 'white' && id === 'blue') ? `onclick="openColorModal(${index})"` : '';
-                if (item.type === 'dragon') cardsHtml += `<div class="card ${color}" style="${isW}" ${clk}><div class="crowns">👑${item.crowns}</div><div class="power">${item.power}</div></div>`;
-                else if (item.type === 'egg') cardsHtml += `<div class="card ${color} egg-card" style="${isW}" ${clk}><div class="card-title" style="margin-top:30px;">Яйцо</div></div>`;
+                
+                if (item.type === 'dragon') {
+                    cardsHtml += `<div class="card ${color}" style="${isW}" ${clk}><div class="crowns">👑${item.crowns}</div><div class="power">${item.power}</div></div>`;
+                } else if (item.type === 'egg' || item.isEgg) {
+                    cardsHtml += `<div class="card ${color} egg-card" style="${isW}" ${clk}><div class="card-title" style="margin-top:30px;">Яйцо</div></div>`;
+                }
             });
             stacksHtml += `<div class="stack" title="${color === 'white' && id === 'blue' ? 'Кликни, чтобы перекрасить!' : ''}">${cardsHtml}</div>`;
         });
@@ -101,7 +187,10 @@ function renderInventories() {
         let trHtml = '';
         stacks.treasures.forEach(tr => { trHtml += `<div class="mini-treasure" title="${tr.desc}">${tr.short}<span>${tr.name}</span></div>`; });
 
-        html += `<div class="inv-panel inv-${id}"><div><b style="font-size:18px;">${p.name}</b><br><span style="color:#bdc3c7; font-size:12px;">Сила: ${p.powers.join(', ')}</span></div><div class="trophies-container">${stacksHtml}<div class="treasure-stack">${trHtml}</div></div></div>`;
+        // Выводим очки крупным шрифтом!
+        let scoreDisplay = `<span style="color:#f1c40f; font-weight:bold; margin-left:15px; font-size:20px;" title="Текущий счет">👑 ${currentScores[id].total}</span>`;
+
+        html += `<div class="inv-panel inv-${id}"><div><b style="font-size:18px;">${p.name}</b> ${scoreDisplay}<br><span style="color:#bdc3c7; font-size:12px;">Сила: ${p.powers.join(', ')}</span></div><div class="trophies-container">${stacksHtml}<div class="treasure-stack">${trHtml}</div></div></div>`;
     }
     document.getElementById('inventories-board').innerHTML = html;
 }
@@ -109,9 +198,9 @@ function renderInventories() {
 function generateContracts() {
     let cColors = shuffle([...colors]); 
     gameState.contracts = [
-        { title: "Поймать 3", req: 3, points: 4, color: cColors[0], type: "regular", treasure: decks.treasures.pop(), winner: null },
-        { title: "Поймать 4", req: 4, points: 6, color: cColors[1], type: "regular", treasure: decks.treasures.pop(), winner: null },
-        { title: "Поймать 5", req: 5, points: 9, color: cColors[2], type: "regular", treasure: decks.treasures.pop(), winner: null },
+        { title: "Собрать 3", req: 3, points: 4, color: cColors[0], type: "regular", treasure: decks.treasures.pop(), winner: null },
+        { title: "Собрать 4", req: 4, points: 6, color: cColors[1], type: "regular", treasure: decks.treasures.pop(), winner: null },
+        { title: "Собрать 5", req: 5, points: 9, color: cColors[2], type: "regular", treasure: decks.treasures.pop(), winner: null },
         { title: "Больше всех", req: 0, points: 10, color: cColors[3], type: "majority", treasure: null, winner: null }
     ];
     renderContracts();
@@ -127,18 +216,19 @@ function renderContracts() {
     document.getElementById('contracts-board').innerHTML = html;
 }
 
-function checkContractsInstant(triggeringTeamId) {
+function checkContractsInstant(teamId) {
     let changed = false;
     gameState.contracts.forEach(c => {
         if (c.winner || c.type === 'majority') return; 
-        let count = gameState.players[triggeringTeamId].trophies.filter(t => t.type === 'dragon' && t.color === c.color).length;
+        
+        let count = gameState.players[teamId].trophies.filter(t => t.color === c.color).length;
         if (count >= c.req) {
-            c.winner = triggeringTeamId;
+            c.winner = teamId;
             if (c.treasure) {
-                gameState.players[triggeringTeamId].trophies.push(c.treasure);
+                gameState.players[teamId].trophies.push(c.treasure);
                 c.treasure = null;
             }
-            logMsg(`🏆 ${gameState.players[triggeringTeamId].name} выполнил контракт "${c.title}"!`, 'log-move');
+            logMsg(`🏆 ${gameState.players[teamId].name} выполнил контракт "${c.title}"!`, 'log-move');
             changed = true;
         }
     });
@@ -155,6 +245,28 @@ function applyColor(newColor) {
     if (whites[pendingWhiteIndex]) whites[pendingWhiteIndex].color = newColor; 
     document.getElementById('color-modal').style.display = 'none';
     renderInventories(); checkContractsInstant('blue'); 
+}
+
+function botRecolorWhite(team) {
+    let whites = gameState.players[team].trophies.filter(t => t.color === 'white');
+    if (whites.length === 0) return;
+
+    let changed = false;
+    whites.forEach(w => {
+        let chosenColor = colors[Math.floor(Math.random() * colors.length)]; 
+        
+        for (let c of gameState.contracts) {
+            if (!c.winner && c.type !== 'majority') {
+                let count = gameState.players[team].trophies.filter(t => t.color === c.color).length;
+                if (count + 1 >= c.req) { chosenColor = c.color; break; }
+            }
+        }
+        w.color = chosenColor;
+        changed = true;
+        logMsg(`🤖 ${gameState.players[team].name} перекрасил белую карту в ${chosenColor}!`, "log-move");
+    });
+    
+    if (changed) { renderInventories(); checkContractsInstant(team); }
 }
 
 function startRound() {
@@ -192,9 +304,9 @@ function renderBoard() {
     };
 
     let activeBps = [];
-    if (gameState.botCount === 1) activeBps = [allBps.A, allBps.B, allBps.V]; // 2 Игрока
-    if (gameState.botCount === 2) activeBps = [allBps.A, allBps.B, allBps.G]; // 3 Игрока
-    if (gameState.botCount === 3) activeBps = [allBps.A, allBps.B, allBps.V, allBps.G]; // 4 Игрока
+    if (gameState.botCount === 1) activeBps = [allBps.A, allBps.B, allBps.V]; 
+    if (gameState.botCount === 2) activeBps = [allBps.A, allBps.B, allBps.G]; 
+    if (gameState.botCount === 3) activeBps = [allBps.A, allBps.B, allBps.V, allBps.G]; 
 
     let html = ''; let currDeck = gameState.round < 4 ? decks.d1 : decks.d2;
 
@@ -255,7 +367,8 @@ async function placeDisk(slotElement, locIndex) {
     if (bonus && bonus.startsWith('loot') && slotElement.dataset.obj) {
         gameState.players.blue.trophies.push(JSON.parse(slotElement.dataset.obj));
         let c = slotElement.querySelector('.card'); if(c) c.remove();
-        renderInventories(); finalizePlayerTurn();
+        renderInventories(); checkContractsInstant('blue'); 
+        finalizePlayerTurn();
     } else if (bonus === 'upgrade') {
         gameState.isActionPaused = true; showUpgradeModal('blue').then(() => finalizePlayerTurn());
     } else if (bonus === 'swap') {
@@ -321,7 +434,6 @@ function endSwapUI() {
     document.getElementById('action-header').style.display = 'none'; swapState.resolveFunc();
 }
 
-// --- УМНЫЙ БОТ (Взвешивание ходов) ---
 function botTurn(team) {
     let emptySlots = Array.from(document.querySelectorAll('.slot')).filter(s => !s.querySelector('.hunter-disk'));
     let availIndices = gameState.players[team].avail.map((a, i) => a ? i : -1).filter(i => i !== -1);
@@ -331,37 +443,29 @@ function botTurn(team) {
 
     emptySlots.forEach(slot => {
         availIndices.forEach(dIndex => {
-            let score = Math.random() * 5; // Немного хаоса
+            let score = Math.random() * 5; 
             let power = gameState.players[team].powers[dIndex];
 
-            // Любит лут
             if (slot.hasAttribute('data-obj')) score += 8;
-            
-            // Любит качаться, если есть слабые диски
             if (slot.dataset.bonus === 'upgrade' && gameState.players[team].powers.some(p => p < 4)) score += 6;
 
-            // Оценивает драконов в локации
             let loc = slot.closest('.location');
             let dragons = Array.from(loc.querySelectorAll('.dragon-card'));
             
             dragons.forEach(d => {
                 let dPower = parseInt(d.dataset.power);
                 if (power >= dPower) {
-                    score += 4; // Может поймать
-                    // Проверяет, нужен ли цвет для контракта
+                    score += 4; 
                     gameState.contracts.forEach(c => {
-                        if (!c.winner && c.color === d.dataset.color) score += 10; // ОЧЕНЬ хочет поймать!
+                        if (!c.winner && c.color === d.dataset.color) score += 10; 
                     });
-                } else {
-                    score += 2; // Ослабить тоже неплохо (опыт)
-                }
+                } else score += 2; 
             });
 
             if (score > maxScore) { maxScore = score; bestMove = { slot, dIndex }; }
         });
     });
 
-    // Выполнение лучшего хода
     gameState.players[team].avail[bestMove.dIndex] = false;
     let diskEl = document.createElement('div');
     diskEl.className = `hunter-disk hidden-disk`; diskEl.innerText = "?"; 
@@ -372,6 +476,8 @@ function botTurn(team) {
     if (bonus && bonus.startsWith('loot') && bestMove.slot.dataset.obj) {
         gameState.players[team].trophies.push(JSON.parse(bestMove.slot.dataset.obj));
         let c = bestMove.slot.querySelector('.card'); if(c) c.remove();
+        checkContractsInstant(team); 
+        botRecolorWhite(team); 
     } else if (bonus === 'upgrade') {
         let avail = gameState.players[team].avail.findIndex(a => a === true);
         if(avail !== -1) gameState.players[team].powers[avail]++; 
@@ -380,27 +486,6 @@ function botTurn(team) {
         if(d.length > 1) loc.querySelector('.dragons-area').insertBefore(d[1], d[0]); 
     }
     renderInventories(); gameState.disksPlaced++; nextTurn();
-}
-
-// --- БОТ КРАСИТ БЕЛОГО ДРАКОНА ---
-function botRecolorWhite(team) {
-    let whites = gameState.players[team].trophies.filter(t => t.type === 'dragon' && t.color === 'white');
-    if (whites.length === 0) return;
-
-    whites.forEach(w => {
-        let chosenColor = colors[Math.floor(Math.random() * colors.length)]; // Запасной цвет
-        
-        // Бот ищет, какой цвет нужен для выполнения контракта
-        for (let c of gameState.contracts) {
-            if (!c.winner && c.type !== 'majority') {
-                let count = gameState.players[team].trophies.filter(t => t.type === 'dragon' && t.color === c.color).length;
-                if (count + 1 >= c.req) { chosenColor = c.color; break; }
-            }
-        }
-        w.color = chosenColor;
-        logMsg(`🤖 ${gameState.players[team].name} перекрасил белого дракона в ${chosenColor}!`, "log-move");
-    });
-    checkContractsInstant(team);
 }
 
 function logMsg(text, type="") {
@@ -436,27 +521,7 @@ async function resolvePhaseAsync() {
                         let basePower = parseInt(dCard.dataset.basepower);
                         let isOrigWhite = dCard.dataset.color === 'white';
                         
-                        gameState.players[hTeam].trophies.push({
-                            type: 'dragon', color: dCard.dataset.color, power: basePower, crowns: parseInt(dCard.dataset.crowns), isOriginallyWhite: isOrigWhite
-                        });
-                        renderInventories(); dCard.style.opacity = '0'; disk.style.opacity = '0'; slot.classList.remove('active-slot');
-                        logMsg(`✅ ${gameState.players[hTeam].name} ПОЙМАЛ дракона!`, "log-win");
-                        
-                        checkContractsInstant(hTeam);
-                        if (isOrigWhite && gameState.players[hTeam].isBot) botRecolorWhite(hTeam); // Бот сразу красит белого
-                        
-                        isCaught = true; break; 
-                    } else {
-                        dPower -= hPower; dCard.dataset.power = dPower;
-                        dCard.querySelector('.power').innerText = dPower; dCard.classList.add('clash-anim');
-                        gameState.players[hTeam].powers[hIndex]++; renderInventories(); 
-                        logMsg(`❌ Змей ослаблен до ${dPower}. Охотник получает +1 к силе!`, "log-fail");
-                        await delay(700); dCard.classList.remove('clash-anim');
-                        disk.style.opacity = '0'; slot.classList.remove('active-slot');
-                    }
-                }
-            }
-            if (!isCaught) { dCard.style.opacity = '0.2'; await delay(200); }
+                        gameState.players[hTeam].trophies.if (!isCaught) { dCard.style.opacity = '0.2'; await delay(200); }
         }
         for (let slot of slots) { let disk = slot.querySelector('.hunter-disk'); if (disk) disk.style.opacity = '0'; }
     }
@@ -464,64 +529,8 @@ async function resolvePhaseAsync() {
 }
 
 function calculateFinalScores() {
-    let results = []; let maxTeamPower = 0;
-
-    for(let id in gameState.players) {
-        let p = gameState.players[id]; let teamPower = p.powers.reduce((a,b) => a+b, 0);
-        if(teamPower > maxTeamPower) maxTeamPower = teamPower;
-
-        let dragPts = p.trophies.filter(t=>t.type==='dragon').reduce((sum, d) => sum + d.crowns, 0);
-        let contPts = gameState.contracts.filter(c=>c.winner===id).reduce((sum, c) => sum + c.points, 0);
-        results.push({id, name: p.name, pObj: p, teamPower, dragPts, contPts, trPts: 0, bonusPts: 0, total: 0});
-    }
-
-    let majC = gameState.contracts.find(c => c.type === 'majority');
-    if(majC) {
-        let maxC = 0;
-        results.forEach(r => {
-            r.majCount = r.pObj.trophies.filter(t=>t.type==='dragon' && t.color===majC.color).length;
-            if(r.majCount > maxC) maxC = r.majCount;
-        });
-        if(maxC > 0) results.forEach(r => { if(r.majCount === maxC) { r.contPts += majC.points; majC.winner = r.id; } });
-    }
-
-    results.forEach(r => {
-        if(r.teamPower === maxTeamPower) r.bonusPts = 6;
-        let trs = r.pObj.trophies.filter(t=>t.type==='treasure');
-        let drags = r.pObj.trophies.filter(t=>t.type==='dragon');
-        let eggs = r.pObj.trophies.filter(t=>t.type==='egg');
-
-        let cRed = drags.filter(d=>d.color==='red').length, cGre = drags.filter(d=>d.color==='green').length;
-        let cYel = drags.filter(d=>d.color==='yellow').length, cPur = drags.filter(d=>d.color==='purple').length;
-        let cWhiteOrig = drags.filter(d=>d.isOriginallyWhite).length;
-
-        trs.forEach(tr => {
-            if(tr.name === "Мушкет") r.trPts += Math.floor(r.teamPower / 3);
-            if(tr.name === "Янтарный амулет") r.trPts += cYel;
-            if(tr.name === "Желто-красный") r.trPts += Math.min(cYel, cRed) * 2;
-            if(tr.name === "Драконья брошь") { let pCnts = {}; drags.forEach(d=>{ pCnts[d.power] = (pCnts[d.power]||0)+1; }); for(let p in pCnts) r.trPts += Math.floor(pCnts[p]/2)*2; }
-            if(tr.name === "Изумрудный") r.trPts += cGre;
-            if(tr.name === "Фиолето-желтый") r.trPts += Math.min(cPur, cYel)*2;
-            if(tr.name === "Белое яйцо") { r.trPts += 0; eggs.push({type:'egg'}); cWhiteOrig++; } 
-            if(tr.name === "Клинок") { let pCnts = {}; r.pObj.powers.forEach(p=>{ pCnts[p] = (pCnts[p]||0)+1; }); for(let p in pCnts) if(pCnts[p] >= 2) r.trPts += parseInt(p); }
-            if(tr.name === "Кубок") r.trPts += trs.length;
-            if(tr.name === "Корона") r.trPts += gameState.contracts.filter(c=>c.winner===r.id).length * 3;
-            if(tr.name === "Маска") r.trPts += 3;
-            if(tr.name === "Рюкзак") r.trPts += eggs.length;
-            if(tr.name === "Аметистовый") r.trPts += cPur;
-            if(tr.name === "Скрижаль") { let eRed = eggs.filter(e=>e.color==='red').length, eGre = eggs.filter(e=>e.color==='green').length, eYel = eggs.filter(e=>e.color==='yellow').length, ePur = eggs.filter(e=>e.color==='purple').length; r.trPts += (Math.min(cRed, eRed) + Math.min(cGre, eGre) + Math.min(cYel, eYel) + Math.min(cPur, ePur)) * 3; }
-            if(tr.name === "Древний фолиант") r.trPts += Math.floor(trs.length / 5) * 6;
-            if(tr.name === "Красно-зеленый") r.trPts += Math.min(cRed, cGre) * 2;
-            if(tr.name === "Зел-Фиолетовый") r.trPts += Math.min(cGre, cPur) * 2;
-            if(tr.name === "Драконий череп") r.trPts += Math.floor(drags.length / 3) * 2;
-            if(tr.name === "Рубиновый") r.trPts += cRed;
-            if(tr.name === "Призма") r.trPts += Math.min(cRed, cGre, cYel, cPur) * 5;
-            if(tr.name === "Глобус") { if(r.pObj.powers.includes(8)) r.trPts+=5; else if(r.pObj.powers.includes(7)) r.trPts+=3; }
-            if(tr.name === "Скарабей") r.trPts += cWhiteOrig * 2;
-            if(tr.name === "Песочные часы") r.trPts += Math.floor(eggs.length / 5) * 6;
-        });
-        r.total = r.dragPts + r.contPts + r.trPts + r.bonusPts;
-    });
+    let scoresDict = getLiveScores();
+    let results = Object.values(scoresDict);
 
     results.sort((a,b) => b.total - a.total); 
     let html = '';
