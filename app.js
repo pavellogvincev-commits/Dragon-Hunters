@@ -12,30 +12,36 @@ let gameState = {
     isActionPaused: false
 };
 
+// Менеджер очередности хода
+const turnOrder = ['blue', 'red', 'green'];
+let firstPlayerIndex = 0; 
+let currentTurnIndex = 0;
+
+// БАЗА ДАННЫХ СОКРОВИЩ (Добавлены короткие иконки/тексты)
 const treasuresDb = [
-    { name: "Мушкет", desc: "1 корона за каждые 3 силы всех ваших драконьеров" },
-    { name: "Янтарный амулет", desc: "1 корона за каждого желтого дракона" },
-    { name: "Желто-красный кристалл", desc: "2 короны за пару (Желтый+Красный)" },
-    { name: "Драконья брошь", desc: "2 очка за пару драконов одинаковой силы" },
-    { name: "Изумрудный амулет", desc: "1 корона за каждого зеленого дракона" },
-    { name: "Фиолето-желтый кристалл", desc: "2 короны за пару (Фиолетовый+Желтый)" },
-    { name: "Белое яйцо", desc: "Считается яйцом. Можно перекрасить как белого дракона" },
-    { name: "Клинок", desc: "Очки за драконьеров одинаковой силы" },
-    { name: "Кубок", desc: "1 корона за каждое сокровище" },
-    { name: "Корона", desc: "3 короны за каждый выполненный контракт" },
-    { name: "Маска", desc: "Дает 3 короны" },
-    { name: "Рюкзак", desc: "1 корона за каждое яйцо" },
-    { name: "Аметистовый амулет", desc: "1 корона за каждого фиолетового дракона" },
-    { name: "Скрижаль", desc: "3 короны за пару дракон+яйцо одинакового цвета" },
-    { name: "Древний фолиант", desc: "6 корон за каждые 5 сокровищ" },
-    { name: "Красно-зеленый кристалл", desc: "2 короны за пару (Красный+Зеленый)" },
-    { name: "Зелено-фиолетовый кристалл", desc: "2 короны за пару (Зеленый+Фиолетовый)" },
-    { name: "Драконий череп", desc: "2 короны за любых 3 дракона" },
-    { name: "Рубиновый амулет", desc: "1 корона за каждого красного дракона" },
-    { name: "Призма", desc: "5 корон за набор из 4 драконов разных цветов" },
-    { name: "Глобус", desc: "3 короны за диск силой 7, или 5 за диск силой 8" },
-    { name: "Скарабей", desc: "2 короны за каждого пойманного белого дракона" },
-    { name: "Песочные часы", desc: "6 корон за каждые 5 яиц" }
+    { name: "Мушкет", short: "👑/3💪", desc: "1 корона за каждые 3 силы всех ваших драконьеров" },
+    { name: "Янтарный амулет", short: "👑/🟡", desc: "1 корона за каждого желтого дракона" },
+    { name: "Желто-красный", short: "2👑/🟡🔴", desc: "2 короны за пару (Желтый+Красный)" },
+    { name: "Драконья брошь", short: "2👑/==", desc: "2 очка за пару драконов одинаковой силы" },
+    { name: "Изумрудный", short: "👑/🟢", desc: "1 корона за каждого зеленого дракона" },
+    { name: "Фиолето-желтый", short: "2👑/🟣🟡", desc: "2 короны за пару (Фиолетовый+Желтый)" },
+    { name: "Белое яйцо", short: "🥚/⚪", desc: "Яйцо. Можно перекрасить как белого дракона" },
+    { name: "Клинок", short: "💪=👑", desc: "Очки за драконьеров одинаковой силы" },
+    { name: "Кубок", short: "👑/🎁", desc: "1 корона за каждое сокровище" },
+    { name: "Корона", short: "3👑/📜", desc: "3 короны за каждый выполненный контракт" },
+    { name: "Маска", short: "+3 👑", desc: "Дает 3 короны" },
+    { name: "Рюкзак", short: "👑/🥚", desc: "1 корона за каждое яйцо" },
+    { name: "Аметистовый", short: "👑/🟣", desc: "1 корона за каждого фиолетового дракона" },
+    { name: "Скрижаль", short: "3👑/🐉🥚", desc: "3 короны за пару дракон+яйцо одинакового цвета" },
+    { name: "Древний фолиант", short: "6👑/5🎁", desc: "6 корон за каждые 5 сокровищ" },
+    { name: "Красно-зеленый", short: "2👑/🔴🟢", desc: "2 короны за пару (Красный+Зеленый)" },
+    { name: "Зел-Фиолетовый", short: "2👑/🟢🟣", desc: "2 короны за пару (Зеленый+Фиолетовый)" },
+    { name: "Драконий череп", short: "2👑/3🐉", desc: "2 короны за любых 3 дракона" },
+    { name: "Рубиновый", short: "👑/🔴", desc: "1 корона за каждого красного дракона" },
+    { name: "Призма", short: "5👑/🌈", desc: "5 корон за набор из 4 драконов разных цветов" },
+    { name: "Глобус", short: "3👑(7💪)", desc: "3 короны за диск силой 7, или 5 за диск 8" },
+    { name: "Скарабей", short: "2👑/⚪", desc: "2 короны за каждого белого дракона" },
+    { name: "Песочные часы", short: "6👑/5🥚", desc: "6 корон за каждые 5 яиц" }
 ];
 
 let decks = { d1: [], d2: [], eggs: [], treasures: [] };
@@ -88,7 +94,7 @@ function renderInventories() {
         });
 
         let trHtml = '';
-        stacks.treasures.forEach(tr => { trHtml += `<div class="mini-treasure" title="${tr.desc}">${tr.name}</div>`; });
+        stacks.treasures.forEach(tr => { trHtml += `<div class="mini-treasure" title="${tr.desc}">${tr.short}<span>${tr.name}</span></div>`; });
 
         html += `
         <div class="inv-panel inv-${id}">
@@ -103,10 +109,10 @@ function renderInventories() {
 function generateContracts() {
     let cColors = shuffle([...colors]); 
     gameState.contracts = [
-        { title: "Поймать 3", req: 3, points: 4, color: cColors[0], type: "regular", treasure: decks.treasures.pop() },
-        { title: "Поймать 4", req: 4, points: 6, color: cColors[1], type: "regular", treasure: decks.treasures.pop() },
-        { title: "Поймать 5", req: 5, points: 9, color: cColors[2], type: "regular", treasure: decks.treasures.pop() },
-        { title: "Больше всех", req: 0, points: 10, color: cColors[3], type: "majority", treasure: null }
+        { title: "Поймать 3", req: 3, points: 4, color: cColors[0], type: "regular", treasure: decks.treasures.pop(), winner: null },
+        { title: "Поймать 4", req: 4, points: 6, color: cColors[1], type: "regular", treasure: decks.treasures.pop(), winner: null },
+        { title: "Поймать 5", req: 5, points: 9, color: cColors[2], type: "regular", treasure: decks.treasures.pop(), winner: null },
+        { title: "Больше всех", req: 0, points: 10, color: cColors[3], type: "majority", treasure: null, winner: null }
     ];
     renderContracts();
 }
@@ -114,14 +120,41 @@ function generateContracts() {
 function renderContracts() {
     let html = '';
     gameState.contracts.forEach(c => {
+        let marker = c.winner ? `<div class="hunter-disk team-${c.winner}" style="width:30px; height:30px; position:absolute; top:-10px; right:-10px; font-size:14px;">✔</div>` : '';
         html += `
-            <div class="contract">
+            <div class="contract" style="${c.winner ? 'opacity:0.6;' : ''}">
+                ${marker}
                 <div>${c.title}</div>
                 <div class="req ${c.color}">${c.points} 👑</div>
-                ${c.treasure ? `<div class="treasure-attach" title="${c.treasure.desc}">🎁 ${c.treasure.name}</div>` : ''}
+                ${c.treasure ? `<div class="treasure-attach" title="${c.treasure.desc}">${c.treasure.short}</div>` : ''}
             </div>`;
     });
     document.getElementById('contracts-board').innerHTML = html;
+}
+
+function checkContracts() {
+    let changed = false;
+    gameState.contracts.forEach(c => {
+        if (c.winner || c.type === 'majority') return; // Мажорити проверяем в конце игры
+        
+        // Ищем победителей по кругу очередности, чтобы первым получал тот, кто ближе к Первому Игроку
+        for(let i=0; i<3; i++) {
+            let teamId = turnOrder[(firstPlayerIndex + i) % 3];
+            let count = gameState.players[teamId].trophies.filter(t => t.type === 'dragon' && t.color === c.color).length;
+            
+            if (count >= c.req) {
+                c.winner = teamId;
+                if (c.treasure) {
+                    gameState.players[teamId].trophies.push({type:'treasure', name: c.treasure.name, desc: c.treasure.desc, short: c.treasure.short});
+                    c.treasure = null;
+                }
+                logMsg(`🏆 ${gameState.players[teamId].name} выполнил контракт "${c.title}"!`, 'log-move');
+                changed = true;
+                break; // Только один победитель
+            }
+        }
+    });
+    if(changed) { renderContracts(); renderInventories(); }
 }
 
 // --- ПЕРЕКРАСКА БЕЛЫХ ---
@@ -135,18 +168,24 @@ function applyColor(newColor) {
     let whites = gameState.players.blue.trophies.filter(t => t.color === 'white');
     if (whites[pendingWhiteIndex]) whites[pendingWhiteIndex].color = newColor; 
     document.getElementById('color-modal').style.display = 'none';
-    renderInventories();
+    renderInventories(); checkContracts(); // Проверяем контракты сразу после перекраски
 }
 
 function startRound() {
     gameState.disksPlaced = 0;
+    firstPlayerIndex = (gameState.round - 1) % 3; // Сдвиг первого игрока
+    currentTurnIndex = firstPlayerIndex;
+    
     for (let id in gameState.players) gameState.players[id].avail = [true, true, true];
-    document.getElementById('round-info').innerText = `Раунд ${gameState.round}/5 | Ваш ход`;
-    document.getElementById('action-header').style.display = 'none';
-    renderInventories(); renderBoard();
+    document.getElementById('action-header').style.display = 'noneTurnIndex];
+    
+    document.getElementById('round-info').innerText = activeTeam === 'blue' ? `Ваш ход (Выберите диск)` : `${gameState.players[activeTeam].name} делает ход...`;
+    
+    if (gameState.players[activeTeam].isBot) {
+        setTimeout(() => botTurn(activeTeam), 1200);
+    }
 }
 
-// --- ПОЛЕ НА 3 ИГРОКОВ (ПЛАНШЕТЫ Б, В, Г) ---
 function renderBoard() {
     const bps = [
         { dragCount: 2, slots: [{t: "🔄 Обмен", b: 'swap'}, {t: "🎩 Усил.", b: 'upgrade'}, {t: "🥚 Яйцо", b: 'loot_egg'}, {t: "💎 Сокр.", b: 'loot_tr'}] },
@@ -167,7 +206,8 @@ function renderBoard() {
 
         let slotsHtml = '';
         loc.slots.forEach((slot, slotIndex) => {
-            let inner = `<div style="font-weight:bold; color:#bdc3c7; z-index:2; position:relative;">${slot.t}</div>`;
+            let isLoot = slot.b.startsWith('loot');
+            let inner = isLoot ? '' : `<div style="font-weight:bold; color:#bdc3c7; z-index:2; position:relative;">${slot.t}</div>`;
             let extraData = `data-bonus="${slot.b}"`;
             
             if (slot.b === 'loot_egg' && decks.eggs.length > 0) {
@@ -176,9 +216,12 @@ function renderBoard() {
                 extraData += ` data-obj='${JSON.stringify(egg)}'`;
             } else if (slot.b === 'loot_tr' && decks.treasures.length > 0) {
                 let tr = decks.treasures.pop();
-                inner += `<div class="card treasure-card" title="${tr.desc}" style="position:absolute; width:65px; height:90px; z-index:1;"><div class="card-title" style="margin-top:25px; font-size:9px;">${tr.name}</div></div>`;
-                extraData += ` data-obj='${JSON.stringify({type:'treasure', name: tr.name, desc: tr.desc})}'`;
+                inner += `<div class="card treasure-card" title="${tr.desc}" style="position:absolute; width:65px; height:90px; z-index:1;"><div style="font-size:16px; margin-top:10px;">${tr.short}</div><div class="card-title" style="font-size:8px;">${tr.name}</div></div>`;
+                extraData += ` data-obj='${JSON.stringify({type:'treasure', name: tr.name, desc: tr.desc, short: tr.short})}'`;
+            } else if (isLoot) {
+                inner = `<div style="color:#7f8c8d; font-size:10px;">Пусто</div>`; // Если колода закончилась
             }
+            
             slotsHtml += `<div class="slot" id="slot-${locIndex}-${slotIndex}" ${extraData} onclick="placeDisk(this, ${locIndex})">${inner}</div>`;
         });
         html += `<div class="location" id="loc-${locIndex}"><div class="dragons-area">${dragonsHtml}</div><div class="slots-area">${slotsHtml}</div></div>`;
@@ -200,13 +243,13 @@ function renderHand() {
 // --- ХОД ИГРОКА И БОНУСЫ ---
 let selectedDisk = null;
 function selectDisk(element) {
-    if(gameState.isActionPaused) return;
+    if(gameState.isActionPaused || turnOrder[currentTurnIndex] !== 'blue') return;
     document.querySelectorAll('.hunter-disk').forEach(el => el.classList.remove('selected'));
     selectedDisk = element; element.classList.add('selected');
 }
 
 async function placeDisk(slotElement, locIndex) {
-    if (gameState.isActionPaused || !selectedDisk || slotElement.querySelector('.hunter-disk')) return;
+    if (gameState.isActionPaused || turnOrder[currentTurnIndex] !== 'blue' || !selectedDisk || slotElement.querySelector('.hunter-disk')) return;
 
     let dIndex = selectedDisk.dataset.index;
     gameState.players.blue.avail[dIndex] = false; 
@@ -240,8 +283,7 @@ function finalizePlayerTurn() {
     document.getElementById('action-header').style.display = 'none';
     gameState.disksPlaced++;
     renderHand();
-    document.getElementById('round-info').innerText = "Боты делают ход...";
-    setTimeout(() => { botTurn('red'); setTimeout(() => { botTurn('green'); checkPhaseEnd(); }, 500); }, 500);
+    nextTurn();
 }
 
 // --- УСИЛЕНИЕ И ОТКАЗ ---
@@ -339,17 +381,19 @@ function botTurn(team) {
         if(d.length > 1) loc.querySelector('.dragons-area').insertBefore(d[1], d[0]); 
     }
     
-    renderInventories(); gameState.disksPlaced++;
+    renderInventories(); 
+    gameState.disksPlaced++;
+    nextTurn();
 }
 
-function checkPhaseEnd() {
-    if (gameState.disksPlaced >= 9) {
-        document.getElementById('round-info').innerText = "Засада окончена! Начинается прорыв!";
-        document.getElementById('resolve-btn').style.display = 'block';
-    } else document.getElementById('round-info').innerText = `Раунд ${gameState.round}/5 | Ваш ход`;
+function logMsg(text, type="") {
+    const logBox = document.getElementById('battle-log');
+    logBox.style.display = 'block';
+    logBox.innerHTML += `<p class="${type}">${text}</p>`;
+    logBox.scrollTop = logBox.scrollHeight;
 }
 
-// --- ПРОРЫВ ---
+// --- ПРОРЫВ (ЗАМЕДЛЕННЫЙ) ---
 async function resolvePhaseAsync() {
     document.getElementById('resolve-btn').style.display = 'none';
     let locations = document.querySelectorAll('.location');
@@ -361,35 +405,50 @@ async function resolvePhaseAsync() {
         for (let dCard of dragons) {
             let dPower = parseInt(dCard.dataset.power);
             let isCaught = false;
-            dCard.classList.add('active-dragon'); await delay(400);
+            
+            dCard.classList.add('active-dragon'); 
+            await delay(1000); // Сильное замедление старта полета
 
             for (let slot of slots) {
                 let disk = slot.querySelector('.hunter-disk');
                 if (disk && disk.style.opacity !== '0') {
-                    slot.classList.add('active-slot'); await delay(200);
+                    slot.classList.add('active-slot'); 
+                    await delay(600); // Замедление подлета
+                    
                     let hTeam = disk.dataset.team, hIndex = disk.dataset.index, hPower = parseInt(disk.dataset.power);
                     
                     if (disk.classList.contains('hidden-disk')) {
-                        disk.className = `hunter-disk team-${hTeam}`; disk.innerText = hPower; await delay(400);
+                        disk.className = `hunter-disk team-${hTeam}`; disk.innerText = hPower; 
+                        await delay(800); // Пауза на оценку вскрытого диска
                     }
 
                     if (hPower >= dPower) {
                         gameState.players[hTeam].trophies.push({type: 'dragon', color: dCard.dataset.color, power: dPower, crowns: dCard.dataset.crowns});
                         renderInventories(); dCard.style.opacity = '0'; disk.style.opacity = '0'; slot.classList.remove('active-slot');
+                        logMsg(`✅ ${gameState.players[hTeam].name} ПОЙМАЛ дракона!`, "log-win");
                         isCaught = true; break; 
                     } else {
                         dPower -= hPower; dCard.dataset.power = dPower;
                         dCard.querySelector('.power').innerText = dPower; dCard.classList.add('clash-anim');
                         gameState.players[hTeam].powers[hIndex]++; renderInventories(); 
-                        await delay(300); dCard.classList.remove('clash-anim');
+                        logMsg(`❌ Змей ослаблен до ${dPower}. Охотник получает +1 к силе!`, "log-fail");
+                        await delay(800); // Замедление удара
+                        dCard.classList.remove('clash-anim');
                         disk.style.opacity = '0'; slot.classList.remove('active-slot');
                     }
                 }
             }
-            if (!isCaught) dCard.style.opacity = '0.2'; await delay(100); 
+            if (!isCaught) {
+                dCard.style.opacity = '0.2'; 
+                await delay(300); 
+            }
         }
         for (let slot of slots) { let disk = slot.querySelector('.hunter-disk'); if (disk) disk.style.opacity = '0'; }
     }
+    
+    // Проверка контрактов после завершения полетов
+    checkContracts();
+    
     document.getElementById('next-round-btn').style.display = 'block';
 }
 
