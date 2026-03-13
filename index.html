@@ -9,16 +9,12 @@
 
     <header>
         <h1>🐉 Драконьеры</h1>
-        <!-- Сюда будут выводиться подсказки и кнопка Отказа -->
         <div id="action-header" style="background: #e67e22; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: bold;"></div>
         <h3 id="round-info">Раунд 1/5 | Ваш ход (Выберите диск)</h3>
     </header>
 
     <div class="inventories" id="inventories-board"></div>
-
-    <!-- Контракты вернулись на законное место -->
     <div class="contracts-area" id="contracts-board"></div>
-
     <div id="game-board" class="board"></div>
 
     <div class="hand-area" id="hand-area">
@@ -35,7 +31,7 @@
     <div id="upgrade-modal" class="modal">
         <h3>Кого усилить (+1)?</h3>
         <div id="upgrade-options" style="display:flex; gap:10px; justify-content:center;"></div>
-        <button onclick="cancelUpgrade()" style="margin-top:15px; padding:5px 10px;">Отказаться</button>
+        <button onclick="cancelUpgrade()" style="margin-top:15px; padding:5px 10px; cursor:pointer;">Отказаться</button>
     </div>
 
     <div id="color-modal" class="modal">
@@ -47,6 +43,26 @@
             <button class="color-btn purple" onclick="applyColor('purple')">Фиолетовый</button>
             <button class="color-btn white" onclick="document.getElementById('color-modal').style.display='none'" style="color:black;">Отмена</button>
         </div>
+    </div>
+
+    <!-- Таблица Финальных Очков -->
+    <div id="score-modal" class="modal" style="width: 80%; max-width: 800px;">
+        <h2 style="color:#f1c40f; margin-bottom:20px;">🏆 КОНЕЦ ИГРЫ: ИТОГИ 🏆</h2>
+        <table id="score-table">
+            <thead>
+                <tr>
+                    <th>Игрок</th>
+                    <th title="Сила команды (Максимум дает +6 корон)">💪 Сила Команды</th>
+                    <th>🐉 За Драконов</th>
+                    <th>📜 За Контракты</th>
+                    <th>💎 За Сокровища</th>
+                    <th>✨ БОНУС (Сила)</th>
+                    <th style="color:#f1c40f;">👑 ИТОГ</th>
+                </tr>
+            </thead>
+            <tbody id="score-body"></tbody>
+        </table>
+        <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; font-weight:bold; cursor:pointer; background:#3498db; color:white; border:none; border-radius:5px;">Играть снова</button>
     </div>
 
     <script src="app.js"></script>
