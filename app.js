@@ -8,37 +8,39 @@ let gameState = {
         red:   { name: 'Бот 1', isBot: true, powers: [1,2,3], avail: [true,true,true], trophies: [] },
         green: { name: 'Бот 2', isBot: true, powers: [1,2,3], avail: [true,true,true], trophies: [] }
     },
-    contracts: [], isActionPaused: false
+    contracts: [],
+    isActionPaused: false
 };
 
 const turnOrder = ['blue', 'red', 'green'];
 let firstPlayerIndex = 0; 
 let currentTurnIndex = 0;
 
+// База данных сокровищ (ДОБАВЛЕН TYPE: 'treasure', чтобы код не ломался)
 const treasuresDb = [
-    { name: "Мушкет", short: "👑/3💪", desc: "1 корона за каждые 3 силы всех ваших драконьеров" },
-    { name: "Янтарный амулет", short: "👑/🟡", desc: "1 корона за каждого желтого дракона" },
-    { name: "Желто-красный", short: "2👑/🟡🔴", desc: "2 короны за пару (Желтый+Красный)" },
-    { name: "Драконья брошь", short: "2👑/==", desc: "2 очка за пару драконов одинаковой силы" },
-    { name: "Изумрудный", short: "👑/🟢", desc: "1 корона за каждого зеленого дракона" },
-    { name: "Фиолето-желтый", short: "2👑/🟣🟡", desc: "2 короны за пару (Фиолетовый+Желтый)" },
-    { name: "Белое яйцо", short: "🥚/⚪", desc: "Яйцо. Можно перекрасить как белого дракона (считается за яйцо и за белого дракона)" },
-    { name: "Клинок", short: "💪=👑", desc: "Очки за драконьеров одинаковой силы (пр: две 8ки = 8 очков)" },
-    { name: "Кубок", short: "👑/🎁", desc: "1 корона за каждое сокровище" },
-    { name: "Корона", short: "3👑/📜", desc: "3 короны за каждый выполненный контракт" },
-    { name: "Маска", short: "+3 👑", desc: "Дает 3 короны" },
-    { name: "Рюкзак", short: "👑/🥚", desc: "1 корона за каждое яйцо" },
-    { name: "Аметистовый", short: "👑/🟣", desc: "1 корона за каждого фиолетового дракона" },
-    { name: "Скрижаль", short: "3👑/🐉🥚", desc: "3 короны за пару дракон+яйцо одинакового цвета" },
-    { name: "Древний фолиант", short: "6👑/5🎁", desc: "6 корон за каждые 5 сокровищ" },
-    { name: "Красно-зеленый", short: "2👑/🔴🟢", desc: "2 короны за пару (Красный+Зеленый)" },
-    { name: "Зел-Фиолетовый", short: "2👑/🟢🟣", desc: "2 короны за пару (Зеленый+Фиолетовый)" },
-    { name: "Драконий череп", short: "2👑/3🐉", desc: "2 короны за любых 3 дракона" },
-    { name: "Рубиновый", short: "👑/🔴", desc: "1 корона за каждого красного дракона" },
-    { name: "Призма", short: "5👑/🌈", desc: "5 корон за набор из 4 драконов разных цветов" },
-    { name: "Глобус", short: "3👑(7💪)", desc: "3 короны за диск силой 7, или 5 за диск 8" },
-    { name: "Скарабей", short: "2👑/⚪", desc: "2 короны за каждого пойманного белого дракона" },
-    { name: "Песочные часы", short: "6👑/5🥚", desc: "6 корон за каждые 5 яиц" }
+    { type: 'treasure', name: "Мушкет", short: "👑/3💪", desc: "1 корона за каждые 3 силы всех ваших драконьеров" },
+    { type: 'treasure', name: "Янтарный амулет", short: "👑/🟡", desc: "1 корона за каждого желтого дракона" },
+    { type: 'treasure', name: "Желто-красный", short: "2👑/🟡🔴", desc: "2 короны за пару (Желтый+Красный)" },
+    { type: 'treasure', name: "Драконья брошь", short: "2👑/==", desc: "2 очка за пару драконов одинаковой силы" },
+    { type: 'treasure', name: "Изумрудный", short: "👑/🟢", desc: "1 корона за каждого зеленого дракона" },
+    { type: 'treasure', name: "Фиолето-желтый", short: "2👑/🟣🟡", desc: "2 короны за пару (Фиолетовый+Желтый)" },
+    { type: 'treasure', name: "Белое яйцо", short: "🥚/⚪", desc: "Яйцо. Можно перекрасить как белого дракона" },
+    { type: 'treasure', name: "Клинок", short: "💪=👑", desc: "Очки за драконьеров одинаковой силы" },
+    { type: 'treasure', name: "Кубок", short: "👑/🎁", desc: "1 корона за каждое сокровище" },
+    { type: 'treasure', name: "Корона", short: "3👑/📜", desc: "3 короны за каждый выполненный контракт" },
+    { type: 'treasure', name: "Маска", short: "+3 👑", desc: "Дает 3 короны" },
+    { type: 'treasure', name: "Рюкзак", short: "👑/🥚", desc: "1 корона за каждое яйцо" },
+    { type: 'treasure', name: "Аметистовый", short: "👑/🟣", desc: "1 корона за каждого фиолетового дракона" },
+    { type: 'treasure', name: "Скрижаль", short: "3👑/🐉🥚", desc: "3 короны за пару дракон+яйцо одинакового цвета" },
+    { type: 'treasure', name: "Древний фолиант", short: "6👑/5🎁", desc: "6 корон за каждые 5 сокровищ" },
+    { type: 'treasure', name: "Красно-зеленый", short: "2👑/🔴🟢", desc: "2 короны за пару (Красный+Зеленый)" },
+    { type: 'treasure', name: "Зел-Фиолетовый", short: "2👑/🟢🟣", desc: "2 короны за пару (Зеленый+Фиолетовый)" },
+    { type: 'treasure', name: "Драконий череп", short: "2👑/3🐉", desc: "2 короны за любых 3 дракона" },
+    { type: 'treasure', name: "Рубиновый", short: "👑/🔴", desc: "1 корона за каждого красного дракона" },
+    { type: 'treasure', name: "Призма", short: "5👑/🌈", desc: "5 корон за набор из 4 драконов разных цветов" },
+    { type: 'treasure', name: "Глобус", short: "3👑(7💪)", desc: "3 короны за диск силой 7, или 5 за диск 8" },
+    { type: 'treasure', name: "Скарабей", short: "2👑/⚪", desc: "2 короны за каждого пойманного белого дракона" },
+    { type: 'treasure', name: "Песочные часы", short: "6👑/5🥚", desc: "6 корон за каждые 5 яиц" }
 ];
 
 let decks = { d1: [], d2: [], eggs: [], treasures: [] };
@@ -65,14 +67,20 @@ function initDecks() {
 
     colors.forEach(c => { for(let i=0; i<5; i++) decks.eggs.push({type:'egg', color: c}); });
     shuffle(decks.eggs);
-    decks.treasures = shuffle([...treasuresDb]);
+    
+    // Глубокое копирование базы сокровищ, чтобы объекты не ссылались друг на друга
+    decks.treasures = shuffle(JSON.parse(JSON.stringify(treasuresDb)));
 }
 
 function renderInventories() {
     let html = '';
     for (let [id, p] of Object.entries(gameState.players)) {
         let stacks = { red: [], green: [], yellow: [], purple: [], white: [], treasures: [] };
-        p.trophies.forEach(t => { if(t.type === 'treasure') stacks.treasures.push(t); else stacks[t.color].push(t); });
+        
+        p.trophies.forEach(t => { 
+            if(t.type === 'treasure') stacks.treasures.push(t); 
+            else if(t.color) stacks[t.color].push(t); 
+        });
 
         let stacksHtml = '';
         ['red', 'green', 'yellow', 'purple', 'white'].forEach(color => {
@@ -116,7 +124,7 @@ function renderContracts() {
     document.getElementById('contracts-board').innerHTML = html;
 }
 
-// Проверка контракта вызывается МОМЕНТАЛЬНО для того, кто только что взял карту
+// Моментальная проверка контрактов
 function checkContractsInstant(triggeringTeamId) {
     let changed = false;
     gameState.contracts.forEach(c => {
@@ -129,7 +137,7 @@ function checkContractsInstant(triggeringTeamId) {
                 gameState.players[triggeringTeamId].trophies.push(c.treasure);
                 c.treasure = null;
             }
-            logMsg(`🏆 ${gameState.players[triggeringTeamId].name} моментально выполнил контракт "${c.title}"!`, 'log-move');
+            logMsg(`🏆 ${gameState.players[triggeringTeamId].name} выполнил контракт "${c.title}"!`, 'log-move');
             changed = true;
         }
     });
@@ -143,11 +151,9 @@ function openColorModal(index) {
 }
 function applyColor(newColor) {
     let whites = gameState.players.blue.trophies.filter(t => t.color === 'white');
-    if (whites[pendingWhiteIndex]) {
-        whites[pendingWhiteIndex].color = newColor; // Меняем цвет, но свойство isOrigWhite сохраняется!
-    }
+    if (whites[pendingWhiteIndex]) whites[pendingWhiteIndex].color = newColor; 
     document.getElementById('color-modal').style.display = 'none';
-    renderInventories(); checkContractsInstant('blue'); // Проверяем сразу после перекраски
+    renderInventories(); checkContractsInstant('blue'); 
 }
 
 function startRound() {
@@ -177,8 +183,9 @@ function nextTurn() {
 }
 
 function renderBoard() {
+    // ИСПРАВЛЕННЫЕ ПЛАНШЕТЫ НА 3 ИГРОКОВ (3, 4 и 5 слотов)
     const bps = [
-        { dragCount: 2, slots: [{t: "🔄 Обмен", b: 'swap'}, {t: "🎩 Усил.", b: 'upgrade'}, {t: "🥚 Яйцо", b: 'loot_egg'}, {t: "💎 Сокр.", b: 'loot_tr'}] },
+        { dragCount: 2, slots: [{t: "🔄 Обмен", b: 'swap'}, {t: "🎩 Усил.", b: 'upgrade'}, {t: "💎 Сокр.", b: 'loot_tr'}] },
         { dragCount: 2, slots: [{t: "🔄 Обмен", b: 'swap'}, {t: "🎩 Усил.", b: 'upgrade'}, {t: "🥚 Яйцо", b: 'loot_egg'}, {t: "💎 Сокр.", b: 'loot_tr'}] },
         { dragCount: 3, slots: [{t: "🔄 Обмен", b: 'swap'}, {t: "🎩 Усил.", b: 'upgrade'}, {t: "🥚 Яйцо", b: 'loot_egg'}, {t: "🥚 Яйцо", b: 'loot_egg'}, {t: "💎 Сокр.", b: 'loot_tr'}] }
     ];
@@ -207,7 +214,9 @@ function renderBoard() {
                 let tr = decks.treasures.pop();
                 inner += `<div class="card treasure-card" title="${tr.desc}" style="position:absolute; width:65px; height:90px; z-index:1;"><div style="font-size:16px; margin-top:10px;">${tr.short}</div><div class="card-title" style="font-size:8px;">${tr.name}</div></div>`;
                 extraData += ` data-obj='${JSON.stringify(tr)}'`;
-            } else if (isLoot) inner = `<div style="color:#7f8c8d; font-size:10px;">Пусто</div>`; 
+            } else if (isLoot) {
+                inner = `<div style="color:#7f8c8d; font-size:10px;">Пусто</div>`; 
+            }
             
             slotsHtml += `<div class="slot" id="slot-${locIndex}-${slotIndex}" ${extraData} onclick="placeDisk(this, ${locIndex})">${inner}</div>`;
         });
@@ -262,7 +271,7 @@ function showUpgradeModal(teamId) {
         let availIndices = gameState.players[teamId].avail.map((a, i) => a ? i : -1).filter(i => i !== -1);
         if (availIndices.length === 0) { resolve(); return; } 
         let html = '';
-        availIndices.forEach(i => { html += `<div class="hunter-disk team-blue" style="position:relative;" onclick="applyUpgrade(${i})">${gameState.players[teamId].powers[i]}</div>`; });
+        availIndices.forEach(i => { html += `<div class="hunter-disk team-blue" style="position:relative; cursor:pointer;" onclick="applyUpgrade(${i})">${gameState.players[teamId].powers[i]}</div>`; });
         document.getElementById('upgrade-options').innerHTML = html; document.getElementById('upgrade-modal').style.display = 'block';
     });
 }
@@ -367,7 +376,6 @@ async function resolvePhaseAsync() {
                     }
 
                     if (hPower >= dPower) {
-                        // БЕРЕМ БАЗОВУЮ СИЛУ (С карточки), А НЕ ОСЛАБЛЕННУЮ!
                         let basePower = parseInt(dCard.dataset.basepower);
                         let isOrigWhite = dCard.dataset.color === 'white';
                         
@@ -377,7 +385,6 @@ async function resolvePhaseAsync() {
                         renderInventories(); dCard.style.opacity = '0'; disk.style.opacity = '0'; slot.classList.remove('active-slot');
                         logMsg(`✅ ${gameState.players[hTeam].name} ПОЙМАЛ дракона!`, "log-win");
                         
-                        // МОМЕНТАЛЬНАЯ ПРОВЕРКА КОНТРАКТОВ
                         checkContractsInstant(hTeam);
                         isCaught = true; break; 
                     } else {
@@ -397,12 +404,10 @@ async function resolvePhaseAsync() {
     document.getElementById('next-round-btn').style.display = 'block';
 }
 
-// --- ФИНАЛЬНЫЙ ПОДСЧЕТ ОЧКОВ ---
 function calculateFinalScores() {
     let results = [];
     let maxTeamPower = 0;
 
-    // 1. Предварительный проход (считаем базовые очки и силу команд)
     for(let id in gameState.players) {
         let p = gameState.players[id];
         let teamPower = p.powers.reduce((a,b) => a+b, 0);
@@ -414,7 +419,6 @@ function calculateFinalScores() {
         results.push({id, name: p.name, pObj: p, teamPower, dragPts, contPts, trPts: 0, bonusPts: 0, total: 0});
     }
 
-    // 2. Раздаем Мажорити-контракт
     let majC = gameState.contracts.find(c => c.type === 'majority');
     if(majC) {
         let maxC = 0;
@@ -423,13 +427,10 @@ function calculateFinalScores() {
             if(r.majCount > maxC) maxC = r.majCount;
         });
         if(maxC > 0) {
-            results.forEach(r => {
-                if(r.majCount === maxC) { r.contPts += majC.points; majC.winner = r.id; } // Очки всем, у кого максимум
-            });
+            results.forEach(r => { if(r.majCount === maxC) { r.contPts += majC.points; majC.winner = r.id; } });
         }
     }
 
-    // 3. Сокровища и Бонус за Силу
     results.forEach(r => {
         if(r.teamPower === maxTeamPower) r.bonusPts = 6;
 
@@ -453,7 +454,7 @@ function calculateFinalScores() {
             }
             if(tr.name === "Изумрудный") r.trPts += cGre;
             if(tr.name === "Фиолето-желтый") r.trPts += Math.min(cPur, cYel)*2;
-            if(tr.name === "Белое яйцо") { r.trPts += 0; eggs.push({type:'egg'}); cWhiteOrig++; } // Виртуально добавляем яйцо и белого для подсчета ниже
+            if(tr.name === "Белое яйцо") { r.trPts += 0; eggs.push({type:'egg'}); cWhiteOrig++; } 
             if(tr.name === "Клинок") {
                 let pCnts = {}; r.pObj.powers.forEach(p=>{ pCnts[p] = (pCnts[p]||0)+1; });
                 for(let p in pCnts) if(pCnts[p] >= 2) r.trPts += parseInt(p);
@@ -481,9 +482,8 @@ function calculateFinalScores() {
         r.total = r.dragPts + r.contPts + r.trPts + r.bonusPts;
     });
 
-    results.sort((a,b) => b.total - a.total); // Сортируем по убыванию очков
+    results.sort((a,b) => b.total - a.total); 
 
-    // Выводим в таблицу
     let html = '';
     results.forEach(r => {
         html += `<tr>
@@ -501,10 +501,7 @@ function calculateFinalScores() {
 }
 
 function nextRound() {
-    if(gameState.round === 5) {
-        calculateFinalScores();
-        return;
-    }
+    if(gameState.round === 5) { calculateFinalScores(); return; }
     gameState.round++; startRound();
 }
 
