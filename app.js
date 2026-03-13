@@ -8,8 +8,7 @@ let gameState = {
         red:   { name: 'Бот 1', isBot: true, powers: [1,2,3], avail: [true,true,true], trophies: [] },
         green: { name: 'Бот 2', isBot: true, powers: [1,2,3], avail: [true,true,true], trophies: [] }
     },
-    contracts: [],
-    isActionPaused: false
+    contracts: [], isActionPaused: false
 };
 
 const turnOrder = ['blue', 'red', 'green'];
@@ -23,8 +22,8 @@ const treasuresDb = [
     { name: "Драконья брошь", short: "2👑/==", desc: "2 очка за пару драконов одинаковой силы" },
     { name: "Изумрудный", short: "👑/🟢", desc: "1 корона за каждого зеленого дракона" },
     { name: "Фиолето-желтый", short: "2👑/🟣🟡", desc: "2 короны за пару (Фиолетовый+Желтый)" },
-    { name: "Белое яйцо", short: "🥚/⚪", desc: "Яйцо. Можно перекрасить как белого дракона" },
-    { name: "Клинок", short: "💪=👑", desc: "Очки за драконьеров одинаковой силы" },
+    { name: "Белое яйцо", short: "🥚/⚪", desc: "Яйцо. Можно перекрасить как белого дракона (считается за яйцо и за белого дракона)" },
+    { name: "Клинок", short: "💪=👑", desc: "Очки за драконьеров одинаковой силы (пр: две 8ки = 8 очков)" },
     { name: "Кубок", short: "👑/🎁", desc: "1 корона за каждое сокровище" },
     { name: "Корона", short: "3👑/📜", desc: "3 короны за каждый выполненный контракт" },
     { name: "Маска", short: "+3 👑", desc: "Дает 3 короны" },
@@ -38,16 +37,14 @@ const treasuresDb = [
     { name: "Рубиновый", short: "👑/🔴", desc: "1 корона за каждого красного дракона" },
     { name: "Призма", short: "5👑/🌈", desc: "5 корон за набор из 4 драконов разных цветов" },
     { name: "Глобус", short: "3👑(7💪)", desc: "3 короны за диск силой 7, или 5 за диск 8" },
-    { name: "Скарабей", short: "2👑/⚪", desc: "2 короны за каждого белого дракона" },
+    { name: "Скарабей", short: "2👑/⚪", desc: "2 короны за каждого пойманного белого дракона" },
     { name: "Песочные часы", short: "6👑/5🥚", desc: "6 корон за каждые 5 яиц" }
 ];
 
 let decks = { d1: [], d2: [], eggs: [], treasures: [] };
 
 function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]];
-    } return arr;
+    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr;
 }
 
 function initDecks() {
@@ -119,22 +116,21 @@ function renderContracts() {
     document.getElementById('contracts-board').innerHTML = html;
 }
 
-function checkContracts() {
+// Проверка контракта вызывается МОМЕНТАЛЬНО для того, кто только что взял карту
+function checkContractsInstant(triggeringTeamId) {
     let changed = false;
     gameState.contracts.forEach(c => {
         if (c.winner || c.type === 'majority') return; 
-        for(let i=0; i<3; i++) {
-            let teamId = turnOrder[(firstPlayerIndex + i) % 3];
-            let count = gameState.players[teamId].trophies.filter(t => t.type === 'dragon' && t.color === c.color).length;
-            if (count >= c.req) {
-                c.winner = teamId;
-                if (c.treasure) {
-                    gameState.players[teamId].trophies.push({type:'treasure', name: c.treasure.name, desc: c.treasure.desc, short: c.treasure.short});
-                    c.treasure = null;
-                }
-                logMsg(`🏆 ${gameState.players[teamId].name} выполнил контракт "${c.title}"!`, 'log-move');
-                changed = true; break; 
+        
+        let count = gameState.players[triggeringTeamId].trophies.filter(t => t.type === 'dragon' && t.color === c.color).length;
+        if (count >= c.req) {
+            c.winner = triggeringTeamId;
+            if (c.treasure) {
+                gameState.players[triggeringTeamId].trophies.push(c.treasure);
+                c.treasure = null;
             }
+            logMsg(`🏆 ${gameState.players[triggeringTeamId].name} моментально выполнил контракт "${c.title}"!`, 'log-move');
+            changed = true;
         }
     });
     if(changed) { renderContracts(); renderInventories(); }
@@ -143,14 +139,15 @@ function checkContracts() {
 let pendingWhiteIndex = null;
 function openColorModal(index) {
     if(gameState.isActionPaused) return;
-    pendingWhiteIndex = index;
-    document.getElementById('color-modal').style.display = 'block';
+    pendingWhiteIndex = index; document.getElementById('color-modal').style.display = 'block';
 }
 function applyColor(newColor) {
     let whites = gameState.players.blue.trophies.filter(t => t.color === 'white');
-    if (whites[pendingWhiteIndex]) whites[pendingWhiteIndex].color = newColor; 
+    if (whites[pendingWhiteIndex]) {
+        whites[pendingWhiteIndex].color = newColor; // Меняем цвет, но свойство isOrigWhite сохраняется!
+    }
     document.getElementById('color-modal').style.display = 'none';
-    renderInventories(); checkContracts(); 
+    renderInventories(); checkContractsInstant('blue'); // Проверяем сразу после перекраски
 }
 
 function startRound() {
@@ -165,22 +162,17 @@ function startRound() {
     
     let activeTeam = turnOrder[currentTurnIndex];
     document.getElementById('round-info').innerText = activeTeam === 'blue' ? `Раунд ${gameState.round}/5 | Ваш ход (Вы первый!)` : `Раунд ${gameState.round}/5 | Начинает ${gameState.players[activeTeam].name}...`;
-    
-    if(gameState.players[activeTeam].isBot) {
-        setTimeout(() => botTurn(activeTeam), 1200);
-    }
+    if(gameState.players[activeTeam].isBot) setTimeout(() => botTurn(activeTeam), 1200);
 }
 
 function nextTurn() {
     if (gameState.disksPlaced >= 9) {
         document.getElementById('round-info').innerText = "Засада окончена! Начинается прорыв!";
-        document.getElementById('resolve-btn').style.display = 'block';
-        return;
+        document.getElementById('resolve-btn').style.display = 'block'; return;
     }
     currentTurnIndex = (currentTurnIndex + 1) % 3;
     let activeTeam = turnOrder[currentTurnIndex];
     document.getElementById('round-info').innerText = activeTeam === 'blue' ? `Ваш ход (Выберите диск)` : `${gameState.players[activeTeam].name} делает ход...`;
-    
     if (gameState.players[activeTeam].isBot) setTimeout(() => botTurn(activeTeam), 1200);
 }
 
@@ -191,15 +183,14 @@ function renderBoard() {
         { dragCount: 3, slots: [{t: "🔄 Обмен", b: 'swap'}, {t: "🎩 Усил.", b: 'upgrade'}, {t: "🥚 Яйцо", b: 'loot_egg'}, {t: "🥚 Яйцо", b: 'loot_egg'}, {t: "💎 Сокр.", b: 'loot_tr'}] }
     ];
 
-    let html = '';
-    let currDeck = gameState.round < 4 ? decks.d1 : decks.d2;
+    let html = ''; let currDeck = gameState.round < 4 ? decks.d1 : decks.d2;
 
     bps.forEach((loc, locIndex) => {
         let dragonsHtml = '';
         for(let i=0; i<loc.dragCount; i++) {
             if(currDeck.length === 0) break;
             let d = currDeck.pop();
-            dragonsHtml += `<div class="card dragon-card ${d.color}" data-loc="${locIndex}" data-power="${d.power}" data-color="${d.color}" data-crowns="${d.crowns}"><div class="crowns">👑${d.crowns}</div><div class="power">${d.power}</div></div>`;
+            dragonsHtml += `<div class="card dragon-card ${d.color}" data-loc="${locIndex}" data-power="${d.power}" data-basepower="${d.power}" data-color="${d.color}" data-crowns="${d.crowns}"><div class="crowns">👑${d.crowns}</div><div class="power">${d.power}</div></div>`;
         }
 
         let slotsHtml = '';
@@ -215,25 +206,20 @@ function renderBoard() {
             } else if (slot.b === 'loot_tr' && decks.treasures.length > 0) {
                 let tr = decks.treasures.pop();
                 inner += `<div class="card treasure-card" title="${tr.desc}" style="position:absolute; width:65px; height:90px; z-index:1;"><div style="font-size:16px; margin-top:10px;">${tr.short}</div><div class="card-title" style="font-size:8px;">${tr.name}</div></div>`;
-                extraData += ` data-obj='${JSON.stringify({type:'treasure', name: tr.name, desc: tr.desc, short: tr.short})}'`;
-            } else if (isLoot) {
-                inner = `<div style="color:#7f8c8d; font-size:10px;">Пусто</div>`; 
-            }
+                extraData += ` data-obj='${JSON.stringify(tr)}'`;
+            } else if (isLoot) inner = `<div style="color:#7f8c8d; font-size:10px;">Пусто</div>`; 
             
             slotsHtml += `<div class="slot" id="slot-${locIndex}-${slotIndex}" ${extraData} onclick="placeDisk(this, ${locIndex})">${inner}</div>`;
         });
         html += `<div class="location" id="loc-${locIndex}"><div class="dragons-area">${dragonsHtml}</div><div class="slots-area">${slotsHtml}</div></div>`;
     });
-    document.getElementById('game-board').innerHTML = html;
-    renderHand();
+    document.getElementById('game-board').innerHTML = html; renderHand();
 }
 
 function renderHand() {
     let html = '';
     gameState.players.blue.powers.forEach((power, index) => {
-        if (gameState.players.blue.avail[index]) {
-            html += `<div class="hunter-disk team-blue" style="position:relative;" data-index="${index}" data-power="${power}" onclick="selectDisk(this)">${power}</div>`;
-        }
+        if (gameState.players.blue.avail[index]) html += `<div class="hunter-disk team-blue" style="position:relative;" data-index="${index}" data-power="${power}" onclick="selectDisk(this)">${power}</div>`;
     });
     document.getElementById('player-disks').innerHTML = html;
 }
@@ -247,40 +233,26 @@ function selectDisk(element) {
 
 async function placeDisk(slotElement, locIndex) {
     if (gameState.isActionPaused || turnOrder[currentTurnIndex] !== 'blue' || !selectedDisk || slotElement.querySelector('.hunter-disk')) return;
-
-    let dIndex = selectedDisk.dataset.index;
-    gameState.players.blue.avail[dIndex] = false; 
+    let dIndex = selectedDisk.dataset.index; gameState.players.blue.avail[dIndex] = false; 
     
-    selectedDisk.classList.remove('selected');
-    selectedDisk.style.position = 'absolute';
-    selectedDisk.dataset.team = 'blue';
-    slotElement.appendChild(selectedDisk);
-    selectedDisk = null;
+    selectedDisk.classList.remove('selected'); selectedDisk.style.position = 'absolute'; selectedDisk.dataset.team = 'blue';
+    slotElement.appendChild(selectedDisk); selectedDisk = null;
     
     let bonus = slotElement.dataset.bonus;
     if (bonus && bonus.startsWith('loot') && slotElement.dataset.obj) {
-        let item = JSON.parse(slotElement.dataset.obj);
-        gameState.players.blue.trophies.push(item);
+        gameState.players.blue.trophies.push(JSON.parse(slotElement.dataset.obj));
         let c = slotElement.querySelector('.card'); if(c) c.remove();
-        renderInventories();
-        finalizePlayerTurn();
+        renderInventories(); finalizePlayerTurn();
     } else if (bonus === 'upgrade') {
-        gameState.isActionPaused = true;
-        showUpgradeModal('blue').then(() => finalizePlayerTurn());
+        gameState.isActionPaused = true; showUpgradeModal('blue').then(() => finalizePlayerTurn());
     } else if (bonus === 'swap') {
-        gameState.isActionPaused = true;
-        startSwap(locIndex).then(() => finalizePlayerTurn());
-    } else {
-        finalizePlayerTurn();
-    }
+        gameState.isActionPaused = true; startSwap(locIndex).then(() => finalizePlayerTurn());
+    } else finalizePlayerTurn();
 }
 
 function finalizePlayerTurn() {
-    gameState.isActionPaused = false;
-    document.getElementById('action-header').style.display = 'none';
-    gameState.disksPlaced++;
-    renderHand();
-    nextTurn();
+    gameState.isActionPaused = false; document.getElementById('action-header').style.display = 'none';
+    gameState.disksPlaced++; renderHand(); nextTurn();
 }
 
 let upgradeResolve = null;
@@ -289,11 +261,9 @@ function showUpgradeModal(teamId) {
         upgradeResolve = resolve;
         let availIndices = gameState.players[teamId].avail.map((a, i) => a ? i : -1).filter(i => i !== -1);
         if (availIndices.length === 0) { resolve(); return; } 
-        
         let html = '';
         availIndices.forEach(i => { html += `<div class="hunter-disk team-blue" style="position:relative;" onclick="applyUpgrade(${i})">${gameState.players[teamId].powers[i]}</div>`; });
-        document.getElementById('upgrade-options').innerHTML = html;
-        document.getElementById('upgrade-modal').style.display = 'block';
+        document.getElementById('upgrade-options').innerHTML = html; document.getElementById('upgrade-modal').style.display = 'block';
     });
 }
 window.applyUpgrade = function(index) {
@@ -301,10 +271,7 @@ window.applyUpgrade = function(index) {
     document.getElementById('upgrade-modal').style.display = 'none';
     renderInventories(); upgradeResolve();
 }
-window.cancelUpgrade = function() {
-    document.getElementById('upgrade-modal').style.display = 'none';
-    upgradeResolve();
-}
+window.cancelUpgrade = function() { document.getElementById('upgrade-modal').style.display = 'none'; upgradeResolve(); }
 
 let swapState = { active: false, resolveFunc: null, selected: [] };
 function startSwap(locIndex) {
@@ -313,12 +280,9 @@ function startSwap(locIndex) {
         let dragons = loc.querySelectorAll('.dragon-card');
         if (dragons.length < 2) { resolve(); return; }
         
-        let header = document.getElementById('action-header');
-        header.style.display = 'block';
+        let header = document.getElementById('action-header'); header.style.display = 'block';
         header.innerHTML = `Нажмите на 2 драконов для обмена или <button onclick="cancelSwap()" style="margin-left:15px; cursor:pointer;">Отказаться</button>`;
-        
-        loc.classList.add('swap-mode');
-        swapState = { active: true, resolveFunc: resolve, selected: [], dragonsList: dragons, locElement: loc };
+        loc.classList.add('swap-mode'); swapState = { active: true, resolveFunc: resolve, selected: [], dragonsList: dragons, locElement: loc };
         
         dragons.forEach(d => {
             d.onclick = function() {
@@ -340,12 +304,9 @@ function startSwap(locIndex) {
 }
 window.cancelSwap = function() { if(swapState.active) endSwapUI(); }
 function endSwapUI() {
-    swapState.active = false;
-    swapState.selected.forEach(el => el.classList.remove('swap-selected'));
-    swapState.locElement.classList.remove('swap-mode');
-    swapState.dragonsList.forEach(d => d.onclick = null);
-    document.getElementById('action-header').style.display = 'none';
-    swapState.resolveFunc();
+    swapState.active = false; swapState.selected.forEach(el => el.classList.remove('swap-selected'));
+    swapState.locElement.classList.remove('swap-mode'); swapState.dragonsList.forEach(d => d.onclick = null);
+    document.getElementById('action-header').style.display = 'none'; swapState.resolveFunc();
 }
 
 function botTurn(team) {
@@ -357,7 +318,6 @@ function botTurn(team) {
     if (dIndex === -1) return; 
     
     gameState.players[team].avail[dIndex] = false;
-    
     let diskEl = document.createElement('div');
     diskEl.className = `hunter-disk hidden-disk`; diskEl.innerText = "?"; 
     diskEl.dataset.team = team; diskEl.dataset.power = gameState.players[team].powers[dIndex]; diskEl.dataset.index = dIndex;
@@ -374,17 +334,12 @@ function botTurn(team) {
         let loc = slot.closest('.location'); let d = Array.from(loc.querySelectorAll('.dragon-card'));
         if(d.length > 1) loc.querySelector('.dragons-area').insertBefore(d[1], d[0]); 
     }
-    
-    renderInventories(); 
-    gameState.disksPlaced++;
-    nextTurn();
+    renderInventories(); gameState.disksPlaced++; nextTurn();
 }
 
 function logMsg(text, type="") {
-    const logBox = document.getElementById('battle-log');
-    logBox.style.display = 'block';
-    logBox.innerHTML += `<p class="${type}">${text}</p>`;
-    logBox.scrollTop = logBox.scrollHeight;
+    const logBox = document.getElementById('battle-log'); logBox.style.display = 'block';
+    logBox.innerHTML += `<p class="${type}">${text}</p>`; logBox.scrollTop = logBox.scrollHeight;
 }
 
 async function resolvePhaseAsync() {
@@ -399,52 +354,157 @@ async function resolvePhaseAsync() {
             let dPower = parseInt(dCard.dataset.power);
             let isCaught = false;
             
-            dCard.classList.add('active-dragon'); 
-            await delay(1000); 
+            dCard.classList.add('active-dragon'); await delay(800); 
 
             for (let slot of slots) {
                 let disk = slot.querySelector('.hunter-disk');
                 if (disk && disk.style.opacity !== '0') {
-                    slot.classList.add('active-slot'); 
-                    await delay(600); 
+                    slot.classList.add('active-slot'); await delay(500); 
                     
                     let hTeam = disk.dataset.team, hIndex = disk.dataset.index, hPower = parseInt(disk.dataset.power);
-                    
                     if (disk.classList.contains('hidden-disk')) {
-                        disk.className = `hunter-disk team-${hTeam}`; disk.innerText = hPower; 
-                        await delay(800); 
+                        disk.className = `hunter-disk team-${hTeam}`; disk.innerText = hPower; await delay(700); 
                     }
 
                     if (hPower >= dPower) {
-                        gameState.players[hTeam].trophies.push({type: 'dragon', color: dCard.dataset.color, power: dPower, crowns: dCard.dataset.crowns});
+                        // БЕРЕМ БАЗОВУЮ СИЛУ (С карточки), А НЕ ОСЛАБЛЕННУЮ!
+                        let basePower = parseInt(dCard.dataset.basepower);
+                        let isOrigWhite = dCard.dataset.color === 'white';
+                        
+                        gameState.players[hTeam].trophies.push({
+                            type: 'dragon', color: dCard.dataset.color, power: basePower, crowns: parseInt(dCard.dataset.crowns), isOriginallyWhite: isOrigWhite
+                        });
                         renderInventories(); dCard.style.opacity = '0'; disk.style.opacity = '0'; slot.classList.remove('active-slot');
                         logMsg(`✅ ${gameState.players[hTeam].name} ПОЙМАЛ дракона!`, "log-win");
+                        
+                        // МОМЕНТАЛЬНАЯ ПРОВЕРКА КОНТРАКТОВ
+                        checkContractsInstant(hTeam);
                         isCaught = true; break; 
                     } else {
                         dPower -= hPower; dCard.dataset.power = dPower;
                         dCard.querySelector('.power').innerText = dPower; dCard.classList.add('clash-anim');
                         gameState.players[hTeam].powers[hIndex]++; renderInventories(); 
                         logMsg(`❌ Змей ослаблен до ${dPower}. Охотник получает +1 к силе!`, "log-fail");
-                        await delay(800); 
-                        dCard.classList.remove('clash-anim');
+                        await delay(700); dCard.classList.remove('clash-anim');
                         disk.style.opacity = '0'; slot.classList.remove('active-slot');
                     }
                 }
             }
-            if (!isCaught) {
-                dCard.style.opacity = '0.2'; 
-                await delay(300); 
-            }
+            if (!isCaught) { dCard.style.opacity = '0.2'; await delay(200); }
         }
         for (let slot of slots) { let disk = slot.querySelector('.hunter-disk'); if (disk) disk.style.opacity = '0'; }
     }
-    
-    checkContracts();
     document.getElementById('next-round-btn').style.display = 'block';
 }
 
+// --- ФИНАЛЬНЫЙ ПОДСЧЕТ ОЧКОВ ---
+function calculateFinalScores() {
+    let results = [];
+    let maxTeamPower = 0;
+
+    // 1. Предварительный проход (считаем базовые очки и силу команд)
+    for(let id in gameState.players) {
+        let p = gameState.players[id];
+        let teamPower = p.powers.reduce((a,b) => a+b, 0);
+        if(teamPower > maxTeamPower) maxTeamPower = teamPower;
+
+        let dragPts = p.trophies.filter(t=>t.type==='dragon').reduce((sum, d) => sum + d.crowns, 0);
+        let contPts = gameState.contracts.filter(c=>c.winner===id).reduce((sum, c) => sum + c.points, 0);
+        
+        results.push({id, name: p.name, pObj: p, teamPower, dragPts, contPts, trPts: 0, bonusPts: 0, total: 0});
+    }
+
+    // 2. Раздаем Мажорити-контракт
+    let majC = gameState.contracts.find(c => c.type === 'majority');
+    if(majC) {
+        let maxC = 0;
+        results.forEach(r => {
+            r.majCount = r.pObj.trophies.filter(t=>t.type==='dragon' && t.color===majC.color).length;
+            if(r.majCount > maxC) maxC = r.majCount;
+        });
+        if(maxC > 0) {
+            results.forEach(r => {
+                if(r.majCount === maxC) { r.contPts += majC.points; majC.winner = r.id; } // Очки всем, у кого максимум
+            });
+        }
+    }
+
+    // 3. Сокровища и Бонус за Силу
+    results.forEach(r => {
+        if(r.teamPower === maxTeamPower) r.bonusPts = 6;
+
+        let trs = r.pObj.trophies.filter(t=>t.type==='treasure');
+        let drags = r.pObj.trophies.filter(t=>t.type==='dragon');
+        let eggs = r.pObj.trophies.filter(t=>t.type==='egg');
+
+        let cRed = drags.filter(d=>d.color==='red').length;
+        let cGre = drags.filter(d=>d.color==='green').length;
+        let cYel = drags.filter(d=>d.color==='yellow').length;
+        let cPur = drags.filter(d=>d.color==='purple').length;
+        let cWhiteOrig = drags.filter(d=>d.isOriginallyWhite).length;
+
+        trs.forEach(tr => {
+            if(tr.name === "Мушкет") r.trPts += Math.floor(r.teamPower / 3);
+            if(tr.name === "Янтарный амулет") r.trPts += cYel;
+            if(tr.name === "Желто-красный") r.trPts += Math.min(cYel, cRed) * 2;
+            if(tr.name === "Драконья брошь") {
+                let pCnts = {}; drags.forEach(d=>{ pCnts[d.power] = (pCnts[d.power]||0)+1; });
+                for(let p in pCnts) r.trPts += Math.floor(pCnts[p]/2)*2;
+            }
+            if(tr.name === "Изумрудный") r.trPts += cGre;
+            if(tr.name === "Фиолето-желтый") r.trPts += Math.min(cPur, cYel)*2;
+            if(tr.name === "Белое яйцо") { r.trPts += 0; eggs.push({type:'egg'}); cWhiteOrig++; } // Виртуально добавляем яйцо и белого для подсчета ниже
+            if(tr.name === "Клинок") {
+                let pCnts = {}; r.pObj.powers.forEach(p=>{ pCnts[p] = (pCnts[p]||0)+1; });
+                for(let p in pCnts) if(pCnts[p] >= 2) r.trPts += parseInt(p);
+            }
+            if(tr.name === "Кубок") r.trPts += trs.length;
+            if(tr.name === "Корона") r.trPts += gameState.contracts.filter(c=>c.winner===r.id).length * 3;
+            if(tr.name === "Маска") r.trPts += 3;
+            if(tr.name === "Рюкзак") r.trPts += eggs.length;
+            if(tr.name === "Аметистовый") r.trPts += cPur;
+            if(tr.name === "Скрижаль") {
+                let eRed = eggs.filter(e=>e.color==='red').length, eGre = eggs.filter(e=>e.color==='green').length, eYel = eggs.filter(e=>e.color==='yellow').length, ePur = eggs.filter(e=>e.color==='purple').length;
+                r.trPts += (Math.min(cRed, eRed) + Math.min(cGre, eGre) + Math.min(cYel, eYel) + Math.min(cPur, ePur)) * 3;
+            }
+            if(tr.name === "Древний фолиант") r.trPts += Math.floor(trs.length / 5) * 6;
+            if(tr.name === "Красно-зеленый") r.trPts += Math.min(cRed, cGre) * 2;
+            if(tr.name === "Зел-Фиолетовый") r.trPts += Math.min(cGre, cPur) * 2;
+            if(tr.name === "Драконий череп") r.trPts += Math.floor(drags.length / 3) * 2;
+            if(tr.name === "Рубиновый") r.trPts += cRed;
+            if(tr.name === "Призма") r.trPts += Math.min(cRed, cGre, cYel, cPur) * 5;
+            if(tr.name === "Глобус") { if(r.pObj.powers.includes(8)) r.trPts+=5; else if(r.pObj.powers.includes(7)) r.trPts+=3; }
+            if(tr.name === "Скарабей") r.trPts += cWhiteOrig * 2;
+            if(tr.name === "Песочные часы") r.trPts += Math.floor(eggs.length / 5) * 6;
+        });
+
+        r.total = r.dragPts + r.contPts + r.trPts + r.bonusPts;
+    });
+
+    results.sort((a,b) => b.total - a.total); // Сортируем по убыванию очков
+
+    // Выводим в таблицу
+    let html = '';
+    results.forEach(r => {
+        html += `<tr>
+            <td style="font-weight:bold; color:var(--team-${r.id});">${r.name}</td>
+            <td>${r.teamPower}</td>
+            <td>${r.dragPts}</td>
+            <td>${r.contPts}</td>
+            <td>${r.trPts}</td>
+            <td>+${r.bonusPts}</td>
+            <td class="total-col">${r.total}</td>
+        </tr>`;
+    });
+    document.getElementById('score-body').innerHTML = html;
+    document.getElementById('score-modal').style.display = 'block';
+}
+
 function nextRound() {
-    if(gameState.round === 5) { alert("Игра окончена! (Подсчет очков в разработке)"); return; }
+    if(gameState.round === 5) {
+        calculateFinalScores();
+        return;
+    }
     gameState.round++; startRound();
 }
 
