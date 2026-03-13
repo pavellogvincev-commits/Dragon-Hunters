@@ -9,12 +9,14 @@
 
     <header>
         <h1>🐉 Драконьеры</h1>
+        <!-- Сюда будут выводиться подсказки и кнопка Отказа -->
+        <div id="action-header" style="background: #e67e22; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: none; font-weight: bold;"></div>
         <h3 id="round-info">Раунд 1/5 | Ваш ход (Выберите диск)</h3>
     </header>
 
-    <!-- Инвентари игроков (Стопки) -->
     <div class="inventories" id="inventories-board"></div>
 
+    <!-- Контракты вернулись на законное место -->
     <div class="contracts-area" id="contracts-board"></div>
 
     <div id="game-board" class="board"></div>
@@ -29,13 +31,13 @@
 
     <div class="battle-log" id="battle-log"></div>
 
-    <!-- Модальное окно для Треуголки -->
+    <!-- Модалки -->
     <div id="upgrade-modal" class="modal">
         <h3>Кого усилить (+1)?</h3>
         <div id="upgrade-options" style="display:flex; gap:10px; justify-content:center;"></div>
+        <button onclick="cancelUpgrade()" style="margin-top:15px; padding:5px 10px;">Отказаться</button>
     </div>
 
-    <!-- Модальное окно для Белых драконов -->
     <div id="color-modal" class="modal">
         <h3>В какой цвет перекрасить?</h3>
         <div style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
