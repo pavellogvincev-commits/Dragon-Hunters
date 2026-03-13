@@ -12,12 +12,10 @@ let gameState = {
     isActionPaused: false
 };
 
-// Менеджер очередности хода
 const turnOrder = ['blue', 'red', 'green'];
 let firstPlayerIndex = 0; 
 let currentTurnIndex = 0;
 
-// БАЗА ДАННЫХ СОКРОВИЩ (Добавлены короткие иконки/тексты)
 const treasuresDb = [
     { name: "Мушкет", short: "👑/3💪", desc: "1 корона за каждые 3 силы всех ваших драконьеров" },
     { name: "Янтарный амулет", short: "👑/🟡", desc: "1 корона за каждого желтого дракона" },
@@ -73,7 +71,6 @@ function initDecks() {
     decks.treasures = shuffle([...treasuresDb]);
 }
 
-// --- ИНВЕНТАРИ ---
 function renderInventories() {
     let html = '';
     for (let [id, p] of Object.entries(gameState.players)) {
@@ -96,16 +93,11 @@ function renderInventories() {
         let trHtml = '';
         stacks.treasures.forEach(tr => { trHtml += `<div class="mini-treasure" title="${tr.desc}">${tr.short}<span>${tr.name}</span></div>`; });
 
-        html += `
-        <div class="inv-panel inv-${id}">
-            <div><b style="font-size:18px;">${p.name}</b><br><span style="color:#bdc3c7; font-size:12px;">Сила: ${p.powers.join(', ')}</span></div>
-            <div class="trophies-container">${stacksHtml}<div class="treasure-stack">${trHtml}</div></div>
-        </div>`;
+        html += `<div class="inv-panel inv-${id}"><div><b style="font-size:18px;">${p.name}</b><br><span style="color:#bdc3c7; font-size:12px;">Сила: ${p.powers.join(', ')}</span></div><div class="trophies-container">${stacksHtml}<div class="treasure-stack">${trHtml}</div></div></div>`;
     }
     document.getElementById('inventories-board').innerHTML = html;
 }
 
-// --- КОНТРАКТЫ ---
 function generateContracts() {
     let cColors = shuffle([...colors]); 
     gameState.contracts = [
@@ -121,13 +113,8 @@ function renderContracts() {
     let html = '';
     gameState.contracts.forEach(c => {
         let marker = c.winner ? `<div class="hunter-disk team-${c.winner}" style="width:30px; height:30px; position:absolute; top:-10px; right:-10px; font-size:14px;">✔</div>` : '';
-        html += `
-            <div class="contract" style="${c.winner ? 'opacity:0.6;' : ''}">
-                ${marker}
-                <div>${c.title}</div>
-                <div class="req ${c.color}">${c.points} 👑</div>
-                ${c.treasure ? `<div class="treasure-attach" title="${c.treasure.desc}">${c.treasure.short}</div>` : ''}
-            </div>`;
+        let trHtml = c.treasure ? `<div class="treasure-attach" title="${c.treasure.desc}">${c.treasure.short}</div>` : '';
+        html += `<div class="contract" style="${c.winner ? 'opacity:0.6;' : ''}">${marker}<div>${c.title}</div><div class="req ${c.color}">${c.points} 👑</div>${trHtml}</div>`;
     });
     document.getElementById('contracts-board').innerHTML = html;
 }
@@ -135,13 +122,10 @@ function renderContracts() {
 function checkContracts() {
     let changed = false;
     gameState.contracts.forEach(c => {
-        if (c.winner || c.type === 'majority') return; // Мажорити проверяем в конце игры
-        
-        // Ищем победителей по кругу очередности, чтобы первым получал тот, кто ближе к Первому Игроку
+        if (c.winner || c.type === 'majority') return; 
         for(let i=0; i<3; i++) {
             let teamId = turnOrder[(firstPlayerIndex + i) % 3];
             let count = gameState.players[teamId].trophies.filter(t => t.type === 'dragon' && t.color === c.color).length;
-            
             if (count >= c.req) {
                 c.winner = teamId;
                 if (c.treasure) {
@@ -149,15 +133,13 @@ function checkContracts() {
                     c.treasure = null;
                 }
                 logMsg(`🏆 ${gameState.players[teamId].name} выполнил контракт "${c.title}"!`, 'log-move');
-                changed = true;
-                break; // Только один победитель
+                changed = true; break; 
             }
         }
     });
     if(changed) { renderContracts(); renderInventories(); }
 }
 
-// --- ПЕРЕКРАСКА БЕЛЫХ ---
 let pendingWhiteIndex = null;
 function openColorModal(index) {
     if(gameState.isActionPaused) return;
@@ -168,22 +150,38 @@ function applyColor(newColor) {
     let whites = gameState.players.blue.trophies.filter(t => t.color === 'white');
     if (whites[pendingWhiteIndex]) whites[pendingWhiteIndex].color = newColor; 
     document.getElementById('color-modal').style.display = 'none';
-    renderInventories(); checkContracts(); // Проверяем контракты сразу после перекраски
+    renderInventories(); checkContracts(); 
 }
 
 function startRound() {
     gameState.disksPlaced = 0;
-    firstPlayerIndex = (gameState.round - 1) % 3; // Сдвиг первого игрока
+    firstPlayerIndex = (gameState.round - 1) % 3; 
     currentTurnIndex = firstPlayerIndex;
     
     for (let id in gameState.players) gameState.players[id].avail = [true, true, true];
-    document.getElementById('action-header').style.display = 'noneTurnIndex];
+    document.getElementById('action-header').style.display = 'none';
     
-    document.getElementById('round-info').innerText = activeTeam === 'blue' ? `Ваш ход (Выберите диск)` : `${gameState.players[activeTeam].name} делает ход...`;
+    renderInventories(); renderBoard();
     
-    if (gameState.players[activeTeam].isBot) {
+    let activeTeam = turnOrder[currentTurnIndex];
+    document.getElementById('round-info').innerText = activeTeam === 'blue' ? `Раунд ${gameState.round}/5 | Ваш ход (Вы первый!)` : `Раунд ${gameState.round}/5 | Начинает ${gameState.players[activeTeam].name}...`;
+    
+    if(gameState.players[activeTeam].isBot) {
         setTimeout(() => botTurn(activeTeam), 1200);
     }
+}
+
+function nextTurn() {
+    if (gameState.disksPlaced >= 9) {
+        document.getElementById('round-info').innerText = "Засада окончена! Начинается прорыв!";
+        document.getElementById('resolve-btn').style.display = 'block';
+        return;
+    }
+    currentTurnIndex = (currentTurnIndex + 1) % 3;
+    let activeTeam = turnOrder[currentTurnIndex];
+    document.getElementById('round-info').innerText = activeTeam === 'blue' ? `Ваш ход (Выберите диск)` : `${gameState.players[activeTeam].name} делает ход...`;
+    
+    if (gameState.players[activeTeam].isBot) setTimeout(() => botTurn(activeTeam), 1200);
 }
 
 function renderBoard() {
@@ -219,7 +217,7 @@ function renderBoard() {
                 inner += `<div class="card treasure-card" title="${tr.desc}" style="position:absolute; width:65px; height:90px; z-index:1;"><div style="font-size:16px; margin-top:10px;">${tr.short}</div><div class="card-title" style="font-size:8px;">${tr.name}</div></div>`;
                 extraData += ` data-obj='${JSON.stringify({type:'treasure', name: tr.name, desc: tr.desc, short: tr.short})}'`;
             } else if (isLoot) {
-                inner = `<div style="color:#7f8c8d; font-size:10px;">Пусто</div>`; // Если колода закончилась
+                inner = `<div style="color:#7f8c8d; font-size:10px;">Пусто</div>`; 
             }
             
             slotsHtml += `<div class="slot" id="slot-${locIndex}-${slotIndex}" ${extraData} onclick="placeDisk(this, ${locIndex})">${inner}</div>`;
@@ -240,7 +238,6 @@ function renderHand() {
     document.getElementById('player-disks').innerHTML = html;
 }
 
-// --- ХОД ИГРОКА И БОНУСЫ ---
 let selectedDisk = null;
 function selectDisk(element) {
     if(gameState.isActionPaused || turnOrder[currentTurnIndex] !== 'blue') return;
@@ -286,7 +283,6 @@ function finalizePlayerTurn() {
     nextTurn();
 }
 
-// --- УСИЛЕНИЕ И ОТКАЗ ---
 let upgradeResolve = null;
 function showUpgradeModal(teamId) {
     return new Promise(resolve => {
@@ -310,7 +306,6 @@ window.cancelUpgrade = function() {
     upgradeResolve();
 }
 
-// --- ОБМЕН И ОТКАЗ ---
 let swapState = { active: false, resolveFunc: null, selected: [] };
 function startSwap(locIndex) {
     return new Promise(resolve => {
@@ -353,7 +348,6 @@ function endSwapUI() {
     swapState.resolveFunc();
 }
 
-// --- БОТЫ ---
 function botTurn(team) {
     let emptySlots = Array.from(document.querySelectorAll('.slot')).filter(s => !s.querySelector('.hunter-disk'));
     if (emptySlots.length === 0) return;
@@ -393,7 +387,6 @@ function logMsg(text, type="") {
     logBox.scrollTop = logBox.scrollHeight;
 }
 
-// --- ПРОРЫВ (ЗАМЕДЛЕННЫЙ) ---
 async function resolvePhaseAsync() {
     document.getElementById('resolve-btn').style.display = 'none';
     let locations = document.querySelectorAll('.location');
@@ -407,19 +400,19 @@ async function resolvePhaseAsync() {
             let isCaught = false;
             
             dCard.classList.add('active-dragon'); 
-            await delay(1000); // Сильное замедление старта полета
+            await delay(1000); 
 
             for (let slot of slots) {
                 let disk = slot.querySelector('.hunter-disk');
                 if (disk && disk.style.opacity !== '0') {
                     slot.classList.add('active-slot'); 
-                    await delay(600); // Замедление подлета
+                    await delay(600); 
                     
                     let hTeam = disk.dataset.team, hIndex = disk.dataset.index, hPower = parseInt(disk.dataset.power);
                     
                     if (disk.classList.contains('hidden-disk')) {
                         disk.className = `hunter-disk team-${hTeam}`; disk.innerText = hPower; 
-                        await delay(800); // Пауза на оценку вскрытого диска
+                        await delay(800); 
                     }
 
                     if (hPower >= dPower) {
@@ -432,7 +425,7 @@ async function resolvePhaseAsync() {
                         dCard.querySelector('.power').innerText = dPower; dCard.classList.add('clash-anim');
                         gameState.players[hTeam].powers[hIndex]++; renderInventories(); 
                         logMsg(`❌ Змей ослаблен до ${dPower}. Охотник получает +1 к силе!`, "log-fail");
-                        await delay(800); // Замедление удара
+                        await delay(800); 
                         dCard.classList.remove('clash-anim');
                         disk.style.opacity = '0'; slot.classList.remove('active-slot');
                     }
@@ -446,9 +439,7 @@ async function resolvePhaseAsync() {
         for (let slot of slots) { let disk = slot.querySelector('.hunter-disk'); if (disk) disk.style.opacity = '0'; }
     }
     
-    // Проверка контрактов после завершения полетов
     checkContracts();
-    
     document.getElementById('next-round-btn').style.display = 'block';
 }
 
