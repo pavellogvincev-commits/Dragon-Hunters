@@ -4,14 +4,14 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 let gameState = {
     round: 1, maxRounds: 5, disksPlaced: 0, totalDisksRound: 0,
     players: {}, contracts: [], isActionPaused: false, botCount: 0,
-    captainsUsedRound: { blue:{}, red:{}, green:{}, purple:{} } // Отслеживание способностей на раунд
+    captainsUsedRound: { blue:false, red:false, green:false, purple:false } 
 };
 
 let turnOrder = []; let firstPlayerIndex = 0; let currentTurnIndex = 0;
 
 // === БАЗА КАПИТАНОВ ===
 const captainsDb = [
-    { id: 'corvo', name: '"Адмирал" Корво', desc: 'В фазу засады при размещении диска на клетку с наградой можно забрать бонус с ДРУГОЙ пустой клетки в этой же локации.', phase: 'ambush_passive' },
+    { id: 'corvo', name: '"Адмирал" Корво', desc: 'В фазу засады при размещении диска можно забрать бонус с ДРУГОЙ пустой клетки в этой же локации.', phase: 'ambush_passive' },
     { id: 'hector', name: 'Гектор "Свинцовый Шквал"', desc: 'Прокачка: Поймал дракона = +2 силы (макс 8). Не поймал = -1 сила (мин 1).', phase: 'passive' },
     { id: 'iris', name: '"Железная" Ирис', desc: 'Один раз в раунд в фазу прорыва (после вскрытия вашего диска) вы можете дать ему +2 силы.', phase: 'resolve_active' },
     { id: 'eleonora', name: 'Мадам Элеонора', desc: 'Один раз в раунд в фазу прорыва вы можете перекрасить пойманного вами дракона в любой цвет.', phase: 'resolve_active' },
@@ -73,7 +73,6 @@ window.initDraft = function(botCount) {
     document.getElementById('draft-options').innerHTML = html;
     document.getElementById('draft-screen').style.display = 'block';
 
-    // Боты выбирают случайно
     turnOrder.forEach(team => {
         if(team !== 'blue') gameState.players[team].captain = pool.pop();
     });
@@ -83,7 +82,6 @@ window.selectCaptain = function(team, capId) {
     gameState.players[team].captain = captainsDb.find(c => c.id === capId);
     document.getElementById('draft-screen').style.display = 'none';
     
-    // Применяем пассивку Сильвии (старт 2,3,4)
     for(let id in gameState.players) {
         if(gameState.players[id].captain.id === 'sylvia') gameState.players[id].powers = [2,3,4];
     }
@@ -189,10 +187,9 @@ function getLiveScores() {
     return results;
 }
 
-// === ОТРИСОВКА ===
+// === ОТРИСОВКА ИНТЕРФЕЙСА ===
 function renderInventories() {
     let currentScores = getLiveScores(); let html = '';
-    
     for (let [id, p] of Object.entries(gameState.players)) {
         let stacks = { red: [], green: [], yellow: [], purple: [], white: [], treasures: [] };
         p.trophies.forEach(t => { if (t.type === 'treasure') stacks.treasures.push(t); if (t.color) stacks[t.color].push(t); });
@@ -255,6 +252,7 @@ function checkContractsInstant(teamId) {
     if (changed) { renderContracts(); renderInventories(); }
 }
 
+// === ВЗАИМОДЕЙСТВИЕ И МОДАЛКИ ===
 let pendingWhiteIndex = null;
 window.openColorModal = function(index) {
     if (gameState.isActionPaused) return;
@@ -267,6 +265,24 @@ window.applyColor = function(newColor) {
     renderInventories(); checkContractsInstant('blue'); 
 };
 document.getElementById('color-cancel-btn').onclick = function(){ document.getElementById('color-modal').style.display = 'none'; };
+
+function showGenericModal(title, desc, htmlContent) {
+    return new Promise(resolve => {
+        document.getElementById('gm-title').innerText = title;
+        document.getElementById('gm-desc').innerText = desc;
+        document.getElementById('gm-content').innerHTML = htmlContent;
+        document.getElementById('generic-modal').style.display = 'block';
+        
+        window.resolveGeneric = function(val) {
+            document.getElementById('generic-modal').style.display = 'none';
+            resolve(val);
+        };
+        document.getElementById('gm-cancel').onclick = function() {
+            document.getElementById('generic-modal').style.display = 'none';
+            resolve(null);
+        };
+    });
+}
 
 function botRecolorWhite(team) {
     let whites = gameState.players[team].trophies.filter(t => t.color === 'white');
@@ -285,6 +301,7 @@ function botRecolorWhite(team) {
     if (changed) { renderInventories(); checkContractsInstant(team); }
 }
 
+// === ЦИКЛ ИГРЫ ===
 function startRound() {
     document.getElementById('game-ui').style.display = 'block';
     gameState.disksPlaced = 0;
@@ -293,7 +310,7 @@ function startRound() {
     
     for (let id in gameState.players) {
         gameState.players[id].avail = [true, true, true];
-        gameState.captainsUsedRound[id] = false; // Сброс использования способностей
+        gameState.captainsUsedRound[id] = false; 
     }
     
     document.getElementById('action-header').style.display = 'none';
@@ -319,170 +336,6 @@ function nextTurn() {
     if (gameState.players[activeTeam].isBot) setTimeout(() => botTurn(activeTeam), 1000);
 }
 
-// === УПРАВЛЕНИЕ АКТИВНЫМИ СПОСОБНОСТЯМИ (ИГРОК) ===
-function updateCaptainButton() {
-    let cap = gameState.players.blue.captain;
-    let btn = document.getElementById('captain-btn');
-    if(turnOrder[currentTurnIndex] === 'blue' && cap && cap.phase === 'ambush_active' && !gameState.captainsUsedRound.blue) {
-        btn.style.display = 'block';
-    } else {
-        btn.style.display = 'none';
-    }
-}
-
-window.useCaptainAbility = function() {
-    let cap = gameState.players.blue.captain.id;
-    if(cap === 'bramm') startBramm('blue');
-    if(cap === 'sylvia') startSylvia('blue');
-    if(cap === 'quint') startQuint('blue');
-};
-
-function showGenericModal(title, desc, htmlContent) {
-    return new Promise(resolve => {
-        document.getElementById('gm-title').innerText = title;
-        document.getElementById('gm-desc').innerText = desc;
-        document.getElementById('gm-content').innerHTML = htmlContent;
-        document.getElementById('generic-modal').style.display = 'block';
-        
-        window.resolveGeneric = function(val) {
-            document.getElementById('generic-modal').style.display = 'none';
-            resolve(val);
-        };
-        document.getElementById('gm-cancel').onclick = function() {
-            document.getElementById('generic-modal').style.display = 'none';
-            resolve(null);
-        };
-    });
-}
-
-async function startBramm(team) {
-    let drags = gameState.players[team].trophies.filter(t => t.type === 'dragon');
-    let avail = gameState.players[team].avail.map((a,i) => a?i:-1).filter(i=>i!==-1);
-    if(drags.length === 0 || avail.length === 0) return alert("Нет драконов или свободных дисков!");
-
-    let html = `<h4>1. Выберите дракона для сброса:</h4>`;
-    drags.forEach((d, index) => {
-        html += `<div class="card ${d.color}" style="display:inline-block; transform:scale(0.8); cursor:pointer;" onclick="resolveGeneric({step:1, dragIdx:${index}})">👑${d.crowns} <br> 💪${d.power}</div>`;
-    });
-    
-    let res1 = await showGenericModal("Брамм 'Мёртвый узел'", "Сбросьте дракона, чтобы получить +Силу", html);
-    if(!res1) return;
-
-    let chosenDrag = drags[res1.dragIdx];
-    let html2 = `<h4>2. Кого усилить на +${chosenDrag.crowns}?</h4>`;
-    avail.forEach(i => {
-        html2 += `<div class="hunter-disk team-${team}" style="position:relative; cursor:pointer;" onclick="resolveGeneric(${i})">${gameState.players[team].powers[i]}</div>`;
-    });
-
-    let res2 = await showGenericModal("Брамм 'Мёртвый узел'", "", html2);
-    if(res2 === null) return;
-
-    // Выполнение
-    gameState.players[team].powers[res2] += chosenDrag.crowns;
-    // Удаление дракона из трофеев
-    let globalDragIdx = gameState.players[team].trophies.indexOf(chosenDrag);
-    if(globalDragIdx > -1) gameState.players[team].trophies.splice(globalDragIdx, 1);
-    
-    gameState.captainsUsedRound[team] = true;
-    renderInventories(); updateCaptainButton();
-    logMsg(`⚓ Брамм сбросил дракона и усилил диск на +${chosenDrag.crowns}!`);
-}
-
-async function startSylvia(team) {
-    let hidden = document.querySelectorAll('.hidden-disk');
-    if(hidden.length === 0) return alert("На поле нет скрытых дисков!");
-    
-    document.getElementById('action-header').style.display = 'block';
-    document.getElementById('action-header').innerText = "Сильвия: Кликните на любой серый диск, чтобы подсмотреть его!";
-    document.body.classList.add('peek-mode');
-    
-    return new Promise(resolve => {
-        let handler = function(e) {
-            if(e.target.classList.contains('hidden-disk')) {
-                let disk = e.target;
-                disk.classList.remove('hidden-disk'); disk.classList.add(`team-${disk.dataset.team}`); disk.innerText = disk.dataset.power;
-                setTimeout(() => {
-                    disk.classList.add('hidden-disk'); disk.classList.remove(`team-${disk.dataset.team}`); disk.innerText = "?";
-                    document.body.classList.remove('peek-mode'); document.getElementById('action-header').style.display = 'none';
-                    hidden.forEach(h => h.removeEventListener('click', handler));
-                    gameState.captainsUsedRound[team] = true; updateCaptainButton();
-                    logMsg(`⚓ Сильвия подсмотрела диск!`);
-                    resolve();
-                }, 2000);
-            }
-        };
-        hidden.forEach(h => h.addEventListener('click', handler));
-        document.getElementById('gm-cancel').onclick = function() {
-            document.body.classList.remove('peek-mode'); document.getElementById('action-header').style.display = 'none';
-            hidden.forEach(h => h.removeEventListener('click', handler)); resolve();
-        }
-    });
-}
-
-async function startQuint(team) {
-    let avail = gameState.players[team].avail.map((a,i) => a?i:-1).filter(i=>i!==-1);
-    let validDisks = avail.filter(i => gameState.players[team].powers[i] > 1);
-    if(validDisks.length === 0) return alert("Нет доступных дисков с силой > 1!");
-
-    let validContracts = [];
-    gameState.contracts.forEach(c => {
-        if(!c.winner && c.type !== 'majority') {
-            let count = gameState.players[team].trophies.filter(t => t.color === c.color).length;
-            if(count === c.req - 1) validContracts.push(c); // Не хватает ровно одной!
-        }
-    });
-    if(validContracts.length === 0) return alert("Нет контрактов, где не хватает ровно 1 карты!");
-
-    let html = `<h4>1. Выберите диск, чтобы пожертвовать -1 силы:</h4>`;
-    validDisks.forEach(i => {
-        html += `<div class="hunter-disk team-${team}" style="position:relative; cursor:pointer;" onclick="resolveGeneric(${i})">${gameState.players[team].powers[i]}</div>`;
-    });
-    let diskIdx = await showGenericModal("Квинт 'Золотой Змей'", "Пожертвуйте силу ради контракта", html);
-    if(diskIdx === null) return;
-
-    let html2 = `<h4>2. Какой контракт забрать?</h4>`;
-    validContracts.forEach((c, idx) => {
-        html2 += `<button style="padding:10px; margin:5px; border:2px solid ${c.color};" onclick="resolveGeneric(${idx})">${c.title}</button>`;
-    });
-    let cIdx = await showGenericModal("Квинт 'Золотой Змей'", "", html2);
-    if(cIdx === null) return;
-
-    // Выполнение
-    gameState.players[team].powers[diskIdx] -= 1;
-    let chosenContract = validContracts[cIdx];
-    chosenContract.winner = team;
-    if(chosenContract.treasure) { gameState.players[team].trophies.push(chosenContract.treasure); chosenContract.treasure = null; }
-    
-    gameState.captainsUsedRound[team] = true;
-    renderInventories(); renderContracts(); updateCaptainButton();
-    logMsg(`⚓ Квинт пожертвовал силой и мгновенно забрал контракт "${chosenContract.title}"!`, "log-move");
-}
-
-async function handleCorvo(team, originalSlot, locIndex) {
-    if(gameState.captainsUsedRound[team]) return originalSlot; // Уже юзал
-    
-    let loc = document.getElementById(`loc-${locIndex}`);
-    let otherBonusSlots = Array.from(loc.querySelectorAll('.slot')).filter(s => s !== originalSlot && !s.querySelector('.hunter-disk') && s.dataset.bonus);
-    
-    if(otherBonusSlots.length === 0) return originalSlot; // Нет других вариантов
-
-    let html = `<h4>Выберите, откуда забрать бонус (или отмена):</h4><div style="display:flex; gap:10px; justify-content:center;">`;
-    otherBonusSlots.forEach((s, idx) => {
-        let bText = s.innerText.replace("Пусто", "Награда");
-        html += `<button style="padding:10px; cursor:pointer;" onclick="resolveGeneric(${idx})">${bText}</button>`;
-    });
-    html += `</div>`;
-
-    let chosenIdx = await showGenericModal("Адмирал Корво", "Заменить награду?", html);
-    if(chosenIdx !== null) {
-        gameState.captainsUsedRound[team] = true;
-        logMsg(`⚓ Корво перехватил награду с другой клетки!`);
-        return otherBonusSlots[chosenIdx]; // Возвращаем НОВЫЙ слот для забора лута
-    }
-    return originalSlot;
-}
-
-// === ПОЛЕ И ХОДЫ ===
 function renderBoard() {
     const allBps = {
         A: { dragCount: 2, slots: [{t: "🔄 Обмен", b: 'swap'}, {t: "🎩 Усил.", b: 'upgrade'}, {t: "💎 Сокр.", b: 'loot_tr'}] },
@@ -534,6 +387,153 @@ function renderHand() {
     document.getElementById('player-disks').innerHTML = html;
 }
 
+// === АКТИВНЫЕ СПОСОБНОСТИ ИГРОКА ===
+function updateCaptainButton() {
+    let cap = gameState.players.blue.captain;
+    let btn = document.getElementById('captain-btn');
+    if(turnOrder[currentTurnIndex] === 'blue' && cap && cap.phase === 'ambush_active' && !gameState.captainsUsedRound.blue) {
+        btn.style.display = 'block';
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+window.useCaptainAbility = function() {
+    let cap = gameState.players.blue.captain.id;
+    if(cap === 'bramm') startBramm('blue');
+    if(cap === 'sylvia') startSylvia('blue');
+    if(cap === 'quint') startQuint('blue');
+};
+
+async function startBramm(team) {
+    let drags = gameState.players[team].trophies.filter(t => t.type === 'dragon');
+    let avail = gameState.players[team].avail.map((a,i) => a?i:-1).filter(i=>i!==-1);
+    if(drags.length === 0 || avail.length === 0) return alert("Нет драконов или свободных дисков!");
+
+    let html = `<h4>1. Выберите дракона для сброса:</h4>`;
+    drags.forEach((d, index) => {
+        html += `<div class="card ${d.color}" style="display:inline-block; transform:scale(0.8); cursor:pointer;" onclick="resolveGeneric({step:1, dragIdx:${index}})">👑${d.crowns} <br> 💪${d.power}</div>`;
+    });
+    
+    let res1 = await showGenericModal("Брамм 'Мёртвый узел'", "Сбросьте дракона, чтобы получить +Силу", html);
+    if(!res1) return;
+
+    let chosenDrag = drags[res1.dragIdx];
+    let html2 = `<h4>2. Кого усилить на +${chosenDrag.crowns}?</h4>`;
+    avail.forEach(i => {
+        html2 += `<div class="hunter-disk team-${team}" style="position:relative; cursor:pointer;" onclick="resolveGeneric(${i})">${gameState.players[team].powers[i]}</div>`;
+    });
+
+    let res2 = await showGenericModal("Брамм 'Мёртвый узел'", "", html2);
+    if(res2 === null) return;
+
+    gameState.players[team].powers[res2] += chosenDrag.crowns;
+    let globalDragIdx = gameState.players[team].trophies.indexOf(chosenDrag);
+    if(globalDragIdx > -1) gameState.players[team].trophies.splice(globalDragIdx, 1);
+    
+    gameState.captainsUsedRound[team] = true;
+    renderInventories(); updateCaptainButton();
+    logMsg(`⚓ Брамм сбросил дракона и усилися на +${chosenDrag.crowns}!`);
+}
+
+async function startSylvia(team) {
+    let hidden = document.querySelectorAll('.hidden-disk');
+    if(hidden.length === 0) return alert("На поле нет скрытых дисков!");
+    
+    document.getElementById('action-header').style.display = 'block';
+    document.getElementById('action-header').innerText = "Сильвия: Кликните на любой серый диск, чтобы подсмотреть его!";
+    document.body.classList.add('peek-mode');
+    
+    return new Promise(resolve => {
+        let handler = function(e) {
+            if(e.target.classList.contains('hidden-disk')) {
+                let disk = e.target;
+                disk.classList.remove('hidden-disk'); disk.classList.add(`team-${disk.dataset.team}`); disk.innerText = disk.dataset.power;
+                setTimeout(() => {
+                    disk.classList.add('hidden-disk'); disk.classList.remove(`team-${disk.dataset.team}`); disk.innerText = "?";
+                    document.body.classList.remove('peek-mode'); document.getElementById('action-header').style.display = 'none';
+                    hidden.forEach(h => h.removeEventListener('click', handler));
+                    gameState.captainsUsedRound[team] = true; updateCaptainButton();
+                    logMsg(`⚓ Сильвия подсмотрела диск!`);
+                    resolve();
+                }, 2000);
+            }
+        };
+        hidden.forEach(h => h.addEventListener('click', handler));
+        document.getElementById('gm-cancel').onclick = function() {
+            document.body.classList.remove('peek-mode'); document.getElementById('action-header').style.display = 'none';
+            hidden.forEach(h => h.removeEventListener('click', handler)); resolve();
+        }
+    });
+}
+
+async function startQuint(team) {
+    let avail = gameState.players[team].avail.map((a,i) => a?i:-1).filter(i=>i!==-1);
+    let validDisks = avail.filter(i => gameState.players[team].powers[i] > 1);
+    if(validDisks.length === 0) return alert("Нет доступных дисков с силой > 1!");
+
+    let validContracts = [];
+    gameState.contracts.forEach(c => {
+        if(!c.winner && c.type !== 'majority') {
+            let count = gameState.players[team].trophies.filter(t => t.color === c.color).length;
+            if(count === c.req - 1) validContracts.push(c); 
+        }
+    });
+    if(validContracts.length === 0) return alert("Нет контрактов, где не хватает ровно 1 карты!");
+
+    let html = `<h4>1. Выберите диск, чтобы пожертвовать -1 силы:</h4>`;
+    validDisks.forEach(i => {
+        html += `<div class="hunter-disk team-${team}" style="position:relative; cursor:pointer;" onclick="resolveGeneric(${i})">${gameState.players[team].powers[i]}</div>`;
+    });
+    let diskIdx = await showGenericModal("Квинт 'Золотой Змей'", "Пожертвуйте силу ради контракта", html);
+    if(diskIdx === null) return;
+
+    let html2 = `<h4>2. Какой контракт забрать?</h4>`;
+    validContracts.forEach((c, idx) => {
+        html2 += `<button style="padding:10px; margin:5px; border:2px solid ${c.color}; cursor:pointer;" onclick="resolveGeneric(${idx})">${c.title}</button>`;
+    });
+    let cIdx = await showGenericModal("Квинт 'Золотой Змей'", "", html2);
+    if(cIdx === null) return;
+
+    gameState.players[team].powers[diskIdx] -= 1;
+    let chosenContract = validContracts[cIdx];
+    chosenContract.winner = team;
+    if(chosenContract.treasure) { gameState.players[team].trophies.push(chosenContract.treasure); chosenContract.treasure = null; }
+    
+    gameState.captainsUsedRound[team] = true;
+    renderInventories(); renderContracts(); updateCaptainButton();
+    logMsg(`⚓ Квинт пожертвовал силой и мгновенно забрал контракт "${chosenContract.title}"!`, "log-move");
+}
+
+// ПАССИВКА КОРВО (без ограничения на раунд)
+async function handleCorvo(team, originalSlot, locIndex) {
+    let loc = document.getElementById(`loc-${locIndex}`);
+    let otherBonusSlots = Array.from(loc.querySelectorAll('.slot')).filter(s => s !== originalSlot && !s.querySelector('.hunter-disk') && s.dataset.bonus);
+    
+    if(otherBonusSlots.length === 0) return originalSlot; 
+
+    let html = `<h4>Откуда забрать бонус?</h4><div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">`;
+    otherBonusSlots.forEach((s, idx) => {
+        let bText = "Награда";
+        if(s.hasAttribute('data-obj')) {
+            let obj = JSON.parse(s.dataset.obj);
+            if(obj.type === 'treasure') bText = `💎 ${obj.name}`;
+            if(obj.type === 'egg') bText = `🥚 Яйцо (${obj.color})`;
+        } else if(s.dataset.bonus === 'upgrade') bText = "🎩 Усиление";
+        else if(s.dataset.bonus === 'swap') bText = "🔄 Обмен";
+
+        html += `<button style="padding:10px; cursor:pointer;" onclick="resolveGeneric(${idx})">${bText}</button>`;
+    });
+    html += `</div>`;
+
+    let chosenIdx = await showGenericModal("Адмирал Корво", "Вы можете перехватить награду с соседней пустой клетки!", html);
+    if(chosenIdx !== null) {
+        logMsg(`⚓ Корво перехватил соседнюю награду!`, "log-move");
+        return otherBonusSlots[chosenIdx]; 
+    }
+    return originalSlot;
+}
+
 let selectedDisk = null;
 window.selectDisk = function(element) {
     if (gameState.isActionPaused || turnOrder[currentTurnIndex] !== 'blue') return;
@@ -551,7 +551,6 @@ window.placeDisk = async function(slotElement, locIndex) {
     selectedDisk.classList.remove('selected'); selectedDisk.style.position = 'absolute'; selectedDisk.dataset.team = 'blue';
     slotElement.appendChild(selectedDisk); selectedDisk = null;
 
-    // КОРВО: Перехват слота
     let slotToLoot = slotElement;
     if(gameState.players.blue.captain && gameState.players.blue.captain.id === 'corvo') {
         slotToLoot = await handleCorvo('blue', slotElement, locIndex);
@@ -577,57 +576,6 @@ function finalizePlayerTurn() {
     gameState.disksPlaced++; renderHand(); nextTurn();
 }
 
-let upgradeResolve = null;
-function showUpgradeModal(teamId) {
-    return new Promise(resolve => {
-        upgradeResolve = resolve;
-        let availIndices = gameState.players[teamId].avail.map((a, i) => a ? i : -1).filter(i => i !== -1);
-        if (availIndices.length === 0) { resolve(); return; } 
-        let html = '';
-        availIndices.forEach(i => { html += `<div class="hunter-disk team-blue" style="position:relative; cursor:pointer;" onclick="applyUpgrade(${i})">${gameState.players[teamId].powers[i]}</div>`; });
-        document.getElementById('upgrade-options').innerHTML = html; document.getElementById('upgrade-modal').style.display = 'block';
-    });
-}
-window.applyUpgrade = function(index) {
-    gameState.players.blue.powers[index]++; document.getElementById('upgrade-modal').style.display = 'none';
-    renderInventories(); upgradeResolve();
-};
-window.cancelUpgrade = function() { document.getElementById('upgrade-modal').style.display = 'none'; upgradeResolve(); };
-
-let swapState = { active: false, resolveFunc: null, selected: [] };
-function startSwap(locIndex) {
-    return new Promise(resolve => {
-        let loc = document.getElementById(`loc-${locIndex}`);
-        let dragons = loc.querySelectorAll('.dragon-card');
-        if (dragons.length < 2) { resolve(); return; }
-        
-        let header = document.getElementById('action-header'); header.style.display = 'block';
-        header.innerHTML = `Нажмите на 2 драконов для обмена или <button onclick="cancelSwap()" style="margin-left:15px; cursor:pointer;">Отказаться</button>`;
-        loc.classList.add('swap-mode'); swapState = { active: true, resolveFunc: resolve, selected: [], dragonsList: dragons, locElement: loc };
-        
-        dragons.forEach(d => {
-            d.onclick = function() {
-                if (!swapState.active) return;
-                this.classList.toggle('swap-selected');
-                if (this.classList.contains('swap-selected')) swapState.selected.push(this);
-                else swapState.selected = swapState.selected.filter(el => el !== this);
-                if (swapState.selected.length === 2) {
-                    let parent = swapState.selected[0].parentNode;
-                    let n1 = swapState.selected[0]; let n2 = swapState.selected[1]; let s1 = n1.nextSibling === n2 ? n1 : n1.nextSibling;
-                    n2.parentNode.insertBefore(n1, n2); parent.insertBefore(n2, s1);
-                    endSwapUI();
-                }
-            };
-        });
-    });
-}
-window.cancelSwap = function() { if (swapState.active) endSwapUI(); };
-function endSwapUI() {
-    swapState.active = false; swapState.selected.forEach(el => el.classList.remove('swap-selected'));
-    swapState.locElement.classList.remove('swap-mode'); swapState.dragonsList.forEach(d => d.onclick = null);
-    document.getElementById('action-header').style.display = 'none'; swapState.resolveFunc();
-}
-
 function botTurn(team) {
     let emptySlots = Array.from(document.querySelectorAll('.slot')).filter(s => !s.querySelector('.hunter-disk'));
     let availIndices = gameState.players[team].avail.map((a, i) => a ? i : -1).filter(i => i !== -1);
@@ -636,7 +584,6 @@ function botTurn(team) {
     let cap = gameState.players[team].captain.id;
     let usedCap = gameState.captainsUsedRound[team];
 
-    // ИИ Квинт: берет контракт в начале хода, если может
     if(cap === 'quint' && !usedCap) {
         let validContracts = gameState.contracts.filter(c => !c.winner && c.type !== 'majority' && gameState.players[team].trophies.filter(t => t.color === c.color).length === c.req - 1);
         let strongDisks = availIndices.filter(i => gameState.players[team].powers[i] > 1);
@@ -648,7 +595,6 @@ function botTurn(team) {
         }
     }
 
-    // ИИ Брамм: сбрасывает мелкого дракона
     if(cap === 'bramm' && !usedCap) {
         let weakDragIdx = gameState.players[team].trophies.findIndex(t => t.type === 'dragon' && t.crowns === 1);
         if(weakDragIdx > -1) {
@@ -685,11 +631,11 @@ function botTurn(team) {
     diskEl.dataset.team = team; diskEl.dataset.power = gameState.players[team].powers[bestMove.dIndex]; diskEl.dataset.index = bestMove.dIndex;
     bestMove.slot.appendChild(diskEl);
     
-    // ИИ Корво: Если есть лучший лут в локации, берет его
+    // БОТ-КОРВО: Пылесосит соседний лут, без ограничений по раундам
     let slotToLoot = bestMove.slot;
-    if(cap === 'corvo' && !usedCap) {
+    if(cap === 'corvo') {
         let otherBonus = Array.from(bestMove.slot.closest('.location').querySelectorAll('.slot')).filter(s => s !== bestMove.slot && !s.querySelector('.hunter-disk') && s.hasAttribute('data-obj'));
-        if(otherBonus.length > 0) { slotToLoot = otherBonus[0]; gameState.captainsUsedRound[team] = true; logMsg(`🤖 Корво (${team}) перехватил соседний лут!`); }
+        if(otherBonus.length > 0) { slotToLoot = otherBonus[0]; logMsg(`🤖 Корво (${team}) перехватил соседний лут!`); }
     }
 
     let bonus = slotToLoot.dataset.bonus;
@@ -705,11 +651,6 @@ function botTurn(team) {
         if (d.length > 1) loc.querySelector('.dragons-area').insertBefore(d[1], d[0]); 
     }
     renderInventories(); gameState.disksPlaced++; nextTurn();
-}
-
-function logMsg(text, type="") {
-    const logBox = document.getElementById('battle-log'); logBox.style.display = 'block';
-    logBox.innerHTML += `<p class="${type}">${text}</p>`; logBox.scrollTop = logBox.scrollHeight;
 }
 
 window.resolvePhaseAsync = async function() {
@@ -740,10 +681,9 @@ window.resolvePhaseAsync = async function() {
                         disk.className = `hunter-disk team-${hTeam}`; disk.innerText = hPower; await delay(700); 
                     }
 
-                    // АБИЛКА: ИРИС (+2 силы перед ударом)
                     if (cap === 'iris' && !usedCap) {
                         if (hTeam === 'blue') {
-                            let use = await showGenericModal("Железная Ирис", "Использовать бонус +2 силы к этому диску?", `<button style="padding:10px; cursor:pointer;" onclick="resolveGeneric(true)">Да (+2)</button>`);
+                            let use = await showGenericModal("Железная Ирис", "Использовать бонус +2 силы к этому диску?", `<button class="color-btn" style="background:#2ecc71;" onclick="resolveGeneric(true)">Да (+2)</button>`);
                             if(use) { hPower += 2; disk.innerText = hPower; gameState.players[hTeam].powers[hIndex]+=2; gameState.captainsUsedRound[hTeam] = true; logMsg(`⚓ Ирис применяет способность! (+2)`); await delay(500); }
                         } else {
                             if(hPower < dPower && hPower + 2 >= dPower) { hPower += 2; disk.innerText = hPower; gameState.players[hTeam].powers[hIndex]+=2; gameState.captainsUsedRound[hTeam] = true; logMsg(`🤖 Ирис (${hTeam}) внезапно дает +2 силы!`); await delay(500); }
@@ -755,14 +695,12 @@ window.resolvePhaseAsync = async function() {
                         let isOrigWhite = dCard.dataset.color === 'white';
                         let finalColor = dCard.dataset.color;
                         
-                        // АБИЛКА: МАДАМ ЭЛЕОНОРА (Перекраска при поимке)
                         if (cap === 'eleonora' && !usedCap) {
                             if (hTeam === 'blue') {
                                 let html = `<div style="display:flex; gap:5px;"><button class="color-btn red" onclick="resolveGeneric('red')">К</button><button class="color-btn green" onclick="resolveGeneric('green')">З</button><button class="color-btn yellow" onclick="resolveGeneric('yellow')">Ж</button><button class="color-btn purple" onclick="resolveGeneric('purple')">Ф</button></div>`;
                                 let chosen = await showGenericModal("Мадам Элеонора", "Перекрасить этого дракона?", html);
                                 if(chosen) { finalColor = chosen; gameState.captainsUsedRound[hTeam] = true; logMsg(`⚓ Элеонора перекрасила дракона в ${chosen}!`); }
                             } else {
-                                // Бот Элеонора красит, если нужно
                                 for (let c of gameState.contracts) {
                                     if (!c.winner && c.type !== 'majority') {
                                         if (gameState.players[hTeam].trophies.filter(t => t.color === c.color).length + 1 >= c.req) { finalColor = c.color; gameState.captainsUsedRound[hTeam] = true; logMsg(`🤖 Элеонора (${hTeam}) перекрасила дракона в ${finalColor}!`); break; }
@@ -773,7 +711,6 @@ window.resolvePhaseAsync = async function() {
 
                         gameState.players[hTeam].trophies.push({ type: 'dragon', color: finalColor, power: basePower, crowns: parseInt(dCard.dataset.crowns), isOriginallyWhite: isOrigWhite });
                         
-                        // АБИЛКА: ГЕКТОР (Успех = +2)
                         if(cap === 'hector') {
                             gameState.players[hTeam].powers[hIndex] = Math.min(8, gameState.players[hTeam].powers[hIndex] + 2);
                             logMsg(`⚓ Гектор качает драконьера на +2!`);
@@ -790,9 +727,8 @@ window.resolvePhaseAsync = async function() {
                         dPower -= hPower; dCard.dataset.power = dPower;
                         dCard.querySelector('.power').innerText = dPower; dCard.classList.add('clash-anim');
                         
-                        // АБИЛКИ НА ПРОВАЛ (Торвальд / Гектор / Обычный)
                         if(cap === 'thorvald') {
-                            gameState.players[hTeam].powers[hIndex] += 2; logMsg(`❌ Прорыв! Но Торвальд качает драконьера на +2!`, "log-fail");
+                            gameState.players[hTeam].powers[hIndex] += 2; logMsg(`❌ Прорыв! Торвальд качает драконьера на +2!`, "log-fail");
                         } else if(cap === 'hector') {
                             gameState.players[hTeam].powers[hIndex] = Math.max(1, gameState.players[hTeam].powers[hIndex] - 1); logMsg(`❌ Прорыв! Гектор штрафует драконьера на -1!`, "log-fail");
                         } else {
@@ -810,7 +746,34 @@ window.resolvePhaseAsync = async function() {
     document.getElementById('next-round-btn').style.display = 'block';
 };
 
+// === ВЕРНУВШИЙСЯ ПОДСЧЕТ ОЧКОВ ===
+function calculateFinalScores() {
+    let scoresDict = getLiveScores();
+    let results = Object.values(scoresDict);
+
+    results.sort((a,b) => b.total - a.total); 
+    let html = '';
+    results.forEach(r => { 
+        html += `<tr>
+            <td style="font-weight:bold; color:var(--team-${r.id});">${r.name}</td>
+            <td>${r.teamPower}</td>
+            <td>${r.dragPts}</td>
+            <td>${r.contPts}</td>
+            <td>${r.trPts}</td>
+            <td>+${r.bonusPts}</td>
+            <td class="total-col">${r.total}</td>
+        </tr>`; 
+    });
+    
+    document.getElementById('score-body').innerHTML = html; 
+    document.getElementById('score-modal').style.display = 'block';
+}
+
 window.nextRound = function() { 
-    if (gameState.round === 5) { calculateFinalScores(); return; } 
-    gameState.round++; startRound(); 
+    if (gameState.round === 5) { 
+        calculateFinalScores(); 
+        return; 
+    } 
+    gameState.round++; 
+    startRound(); 
 };
