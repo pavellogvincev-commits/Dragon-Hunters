@@ -11,12 +11,19 @@
     <div id="start-screen" class="modal" style="display:block; z-index: 1000; width: 320px;">
         <h2 style="color:#f1c40f; margin-bottom: 20px;">🐉 ДРАКОНЬЕРЫ</h2>
         <p style="margin-bottom: 20px;">Выберите количество противников:</p>
-        <button class="start-btn" onclick="startGame(1)">1 Бот (Игра вдвоем)</button>
-        <button class="start-btn" onclick="startGame(2)">2 Бота (Игра втроем)</button>
-        <button class="start-btn" onclick="startGame(3)">3 Бота (Игра вчетвером)</button>
+        <button class="start-btn" onclick="initDraft(1)">1 Бот (Игра вдвоем)</button>
+        <button class="start-btn" onclick="initDraft(2)">2 Бота (Игра втроем)</button>
+        <button class="start-btn" onclick="initDraft(3)">3 Бота (Игра вчетвером)</button>
     </div>
 
-    <!-- ИГРОВОЙ ИНТЕРФЕЙС (Изначально скрыт) -->
+    <!-- ЭКРАН ВЫБОРА КАПИТАНА -->
+    <div id="draft-screen" class="modal" style="z-index: 1000; width: 600px; max-width: 90%;">
+        <h2 style="color:#f1c40f;">Выберите Капитана</h2>
+        <p>Ваш капитан определит вашу уникальную способность на всю игру.</p>
+        <div id="draft-options" style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;"></div>
+    </div>
+
+    <!-- ИГРОВОЙ ИНТЕРФЕЙС -->
     <div id="game-ui" style="display: none;">
         <header>
             <h1>🐉 Драконьеры</h1>
@@ -29,8 +36,12 @@
         <div id="game-board" class="board"></div>
 
         <div class="hand-area" id="hand-area">
-            <h3>Ваша команда:</h3>
-            <div id="player-disks" style="display: flex; gap: 10px;"></div>
+            <div>
+                <h3>Ваша команда:</h3>
+                <div id="player-disks" style="display: flex; gap: 10px; margin-top:10px;"></div>
+            </div>
+            <!-- КНОПКА СПОСОБНОСТИ КАПИТАНА -->
+            <button id="captain-btn" class="action-button" style="background:#8e44ad; margin-left:auto; display:none;" onclick="useCaptainAbility()">⚓ Способность Капитана</button>
         </div>
         
         <button class="action-button" id="resolve-btn" onclick="resolvePhaseAsync()">🚀 ЗАПУСТИТЬ ФАЗУ ИСХОДА</button>
@@ -39,7 +50,15 @@
         <div class="battle-log" id="battle-log"></div>
     </div>
 
-    <!-- Модалки (Треуголка, Цвет, Очки) -->
+    <!-- УНИВЕРСАЛЬНАЯ МОДАЛКА (Для способностей) -->
+    <div id="generic-modal" class="modal" style="width:400px; z-index:200;">
+        <h3 id="gm-title">Заголовок</h3>
+        <p id="gm-desc" style="font-size:14px; color:#bdc3c7;">Описание</p>
+        <div id="gm-content" style="margin: 15px 0; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;"></div>
+        <button id="gm-cancel" class="color-btn" style="background:#7f8c8d; width:100%;">Отмена</button>
+    </div>
+
+    <!-- Модалки (Треуголка, Цвет) -->
     <div id="upgrade-modal" class="modal">
         <h3>Кого усилить (+1)?</h3>
         <div id="upgrade-options" style="display:flex; gap:10px; justify-content:center;"></div>
@@ -53,10 +72,11 @@
             <button class="color-btn green" onclick="applyColor('green')">Зеленый</button>
             <button class="color-btn yellow" onclick="applyColor('yellow')">Желтый</button>
             <button class="color-btn purple" onclick="applyColor('purple')">Фиолетовый</button>
-            <button class="color-btn white" onclick="document.getElementById('color-modal').style.display='none'" style="color:black;">Отмена</button>
+            <button class="color-btn white" id="color-cancel-btn" style="color:black;">Отмена</button>
         </div>
     </div>
 
+    <!-- Таблица Очков -->
     <div id="score-modal" class="modal" style="width: 80%; max-width: 800px;">
         <h2 style="color:#f1c40f; margin-bottom:20px;">🏆 КОНЕЦ ИГРЫ: ИТОГИ 🏆</h2>
         <table id="score-table">
