@@ -58,7 +58,7 @@ const treasuresDb = [
 
 let decks = { d1: [], d2: [], eggs: [], treasures: [] };
 
-function shuffle(arr) { 
+window.shuffle = function(arr) { 
     for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         const temp = arr[i];
@@ -66,4 +66,23 @@ function shuffle(arr) {
         arr[j] = temp;
     } 
     return arr; 
-}
+};
+
+window.initDecks = function() {
+    decks = { d1: [], d2: [], eggs: [], treasures: [] }; // Очистка колод
+    
+    colors.forEach(c => {
+        decks.d1.push({type:'dragon', color:c, power:3, crowns:1}, {type:'dragon', color:c, power:3, crowns:1}, {type:'dragon', color:c, power:4, crowns:2}, {type:'dragon', color:c, power:4, crowns:2}, {type:'dragon', color:c, power:5, crowns:3}, {type:'dragon', color:c, power:6, crowns:4});
+        decks.d2.push({type:'dragon', color:c, power:5, crowns:3}, {type:'dragon', color:c, power:6, crowns:4}, {type:'dragon', color:c, power:8, crowns:5}, {type:'dragon', color:c, power:10, crowns:6});
+    });
+    decks.d1.push({type:'dragon', color:'white', power:4, crowns:1}, {type:'dragon', color:'white', power:4, crowns:1}, {type:'dragon', color:'white', power:6, crowns:2});
+    decks.d2.push({type:'dragon', color:'white', power:6, crowns:2}, {type:'dragon', color:'white', power:6, crowns:2});
+    
+    window.shuffle(decks.d1); 
+    window.shuffle(decks.d2);
+    
+    colors.forEach(c => { for(let i=0; i<5; i++) decks.eggs.push({type:'egg', color:c}); });
+    window.shuffle(decks.eggs);
+    
+    decks.treasures = window.shuffle(JSON.parse(JSON.stringify(treasuresDb)));
+};
