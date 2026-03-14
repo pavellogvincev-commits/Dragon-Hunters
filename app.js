@@ -16,8 +16,9 @@ let turnOrder = [];
 let firstPlayerIndex = 0; 
 let currentTurnIndex = 0;
 
+// === ОБНОВЛЕННАЯ БАЗА СОКРОВИЩ (Баланс) ===
 const treasuresDb = [
-    { type: 'treasure', name: "Мушкет", short: "👑/3💪", desc: "1 корона за каждые 3 силы всех ваших драконьеров" },
+    { type: 'treasure', name: "Мушкет", short: "👑/4💪", desc: "1 корона за каждые 4 силы всех ваших драконьеров" },
     { type: 'treasure', name: "Янтарный амулет", short: "👑/🟡", desc: "1 корона за каждый ЖЕЛТЫЙ цвет (драконы+яйца)" },
     { type: 'treasure', name: "Желто-красный", short: "2👑/🟡🔴", desc: "2 короны за каждую пару (Желтый + Красный цвет)" },
     { type: 'treasure', name: "Драконья брошь", short: "2👑/==", desc: "2 очка за пару драконов одинаковой силы" },
@@ -30,15 +31,15 @@ const treasuresDb = [
     { type: 'treasure', name: "Маска", short: "+3 👑", desc: "Дает 3 короны просто так" },
     { type: 'treasure', name: "Рюкзак", short: "👑/🥚", desc: "1 корона за каждое яйцо" },
     { type: 'treasure', name: "Аметистовый", short: "👑/🟣", desc: "1 корона за каждый ФИОЛЕТОВЫЙ цвет" },
-    { type: 'treasure', name: "Скрижаль", short: "3👑/🐉🥚", desc: "3 короны за пару (Дракон + Яйцо) ОДНОГО цвета" },
+    { type: 'treasure', name: "Скрижаль", short: "2👑/🐉🥚", desc: "2 короны за пару (Дракон + Яйцо) ОДНОГО цвета" },
     { type: 'treasure', name: "Древний фолиант", short: "6👑/5🎁", desc: "6 корон за каждые 5 сокровищ" },
     { type: 'treasure', name: "Красно-зеленый", short: "2👑/🔴🟢", desc: "2 короны за пару (Красный + Зеленый цвет)" },
     { type: 'treasure', name: "Зел-Фиолетовый", short: "2👑/🟢🟣", desc: "2 короны за пару (Зеленый + Фиолетовый цвет)" },
     { type: 'treasure', name: "Драконий череп", short: "2👑/3🐉", desc: "2 короны за любых 3 пойманных дракона" },
     { type: 'treasure', name: "Рубиновый", short: "👑/🔴", desc: "1 корона за каждый КРАСНЫЙ цвет" },
     { type: 'treasure', name: "Призма", short: "5👑/🌈", desc: "5 корон за набор из 4 разных цветов" },
-    { type: 'treasure', name: "Глобус", short: "3👑(7💪)", desc: "3 короны за диск силой 7, или 5 за диск 8" },
-    { type: 'treasure', name: "Скарабей", short: "2👑/⚪", desc: "2 короны за каждого пойманного белого (сохраняется при перекраске)" },
+    { type: 'treasure', name: "Глобус", short: "3-6👑/📜", desc: "3 короны за 2 выполненных контракта, 6 корон за 3 контракта" },
+    { type: 'treasure', name: "Скарабей", short: "3👑/🚫ЦВЕТ", desc: "3 короны за каждый цвет племени (включая белый), которого у вас НЕТ" },
     { type: 'treasure', name: "Песочные часы", short: "6👑/5🥚", desc: "6 корон за каждые 5 яиц" }
 ];
 
@@ -121,6 +122,9 @@ function getLiveScores() {
     let results = {}; 
     let maxTeamPower = 0;
 
+    let majC = gameState.contracts.find(c => c.type === 'majority');
+    let maxMajCount = 0;
+
     for (let id in gameState.players) {
         let p = gameState.players[id]; 
         let teamPower = p.powers.reduce((a,b) => a+b, 0);
@@ -132,24 +136,19 @@ function getLiveScores() {
         let dragPts = p.trophies.filter(t => t.type === 'dragon').reduce((sum, d) => sum + d.crowns, 0);
         let contPts = gameState.contracts.filter(c => c.winner === id).reduce((sum, c) => sum + c.points, 0);
         
-        results[id] = {id, name: p.name, pObj: p, teamPower, dragPts, contPts, trPts: 0, bonusPts: 0, total: 0};
+        let majCount = 0;
+        if (majC) {
+            majCount = p.trophies.filter(t => t.color === majC.color).length;
+            if (majCount > maxMajCount) maxMajCount = majCount;
+        }
+
+        results[id] = {id, name: p.name, pObj: p, teamPower, dragPts, contPts, trPts: 0, bonusPts: 0, total: 0, majCount};
     }
 
-    let majC = gameState.contracts.find(c => c.type === 'majority');
-    if (majC) {
-        let maxC = 0;
+    if (majC && maxMajCount > 0) {
         for (let id in results) {
-            let count = results[id].pObj.trophies.filter(t => t.color === majC.color).length;
-            results[id].majCount = count;
-            if (count > maxC) {
-                maxC = count;
-            }
-        }
-        if (maxC > 0) {
-            for (let id in results) {
-                if (results[id].majCount === maxC) {
-                    results[id].contPts += majC.points;
-                }
+            if (results[id].majCount === maxMajCount) {
+                results[id].contPts += majC.points;
             }
         }
     }
@@ -168,10 +167,10 @@ function getLiveScores() {
         let cGre = r.pObj.trophies.filter(t => t.color === 'green').length;
         let cYel = r.pObj.trophies.filter(t => t.color === 'yellow').length;
         let cPur = r.pObj.trophies.filter(t => t.color === 'purple').length;
-        let cWhiteOrig = r.pObj.trophies.filter(t => t.isOriginallyWhite).length;
+        let cWhiteOrig = r.pObj.trophies.filter(t => t.isOriginallyWhite).length; // Для Скарабея
 
         trs.forEach(tr => {
-            if (tr.name === "Мушкет") r.trPts += Math.floor(r.teamPower / 3);
+            if (tr.name === "Мушкет") r.trPts += Math.floor(r.teamPower / 4); // ИЗМЕНЕНО: /4
             if (tr.name === "Янтарный амулет") r.trPts += cYel;
             if (tr.name === "Желто-красный") r.trPts += Math.min(cYel, cRed) * 2;
             if (tr.name === "Драконья брошь") { 
@@ -197,7 +196,7 @@ function getLiveScores() {
                 let dGre = drags.filter(d => d.color === 'green').length, eGre = eggs.filter(e => e.color === 'green').length;
                 let dYel = drags.filter(d => d.color === 'yellow').length, eYel = eggs.filter(e => e.color === 'yellow').length;
                 let dPur = drags.filter(d => d.color === 'purple').length, ePur = eggs.filter(e => e.color === 'purple').length;
-                r.trPts += (Math.min(dRed, eRed) + Math.min(dGre, eGre) + Math.min(dYel, eYel) + Math.min(dPur, ePur)) * 3; 
+                r.trPts += (Math.min(dRed, eRed) + Math.min(dGre, eGre) + Math.min(dYel, eYel) + Math.min(dPur, ePur)) * 2; // ИЗМЕНЕНО: *2
             }
             if (tr.name === "Древний фолиант") r.trPts += Math.floor(trs.length / 5) * 6;
             if (tr.name === "Красно-зеленый") r.trPts += Math.min(cRed, cGre) * 2;
@@ -205,11 +204,28 @@ function getLiveScores() {
             if (tr.name === "Драконий череп") r.trPts += Math.floor(drags.length / 3) * 2;
             if (tr.name === "Рубиновый") r.trPts += cRed;
             if (tr.name === "Призма") r.trPts += Math.min(cRed, cGre, cYel, cPur) * 5;
+            
+            // ИЗМЕНЕНО: Глобус
             if (tr.name === "Глобус") { 
-                if (r.pObj.powers.includes(8)) r.trPts+=5; 
-                else if (r.pObj.powers.includes(7)) r.trPts+=3; 
+                let contractsWon = gameState.contracts.filter(c => c.winner === r.id).length;
+                if (majC && r.majCount === maxMajCount && maxMajCount > 0) contractsWon++; // Учитываем мажорити!
+                
+                if (contractsWon >= 3) r.trPts += 6;
+                else if (contractsWon === 2) r.trPts += 3;
             }
-            if (tr.name === "Скарабей") r.trPts += cWhiteOrig * 2;
+            
+            // ИЗМЕНЕНО: Скарабей
+            if (tr.name === "Скарабей") { 
+                let missingColors = 0;
+                if (cRed === 0) missingColors++;
+                if (cGre === 0) missingColors++;
+                if (cYel === 0) missingColors++;
+                if (cPur === 0) missingColors++;
+                if (cWhiteOrig === 0) missingColors++; // Белый цвет определяется по "оригинально-белым" картам
+                
+                r.trPts += missingColors * 3;
+            }
+            
             if (tr.name === "Песочные часы") r.trPts += Math.floor(eggs.length / 5) * 6;
         });
         
@@ -543,26 +559,7 @@ function startSwap(locIndex) {
         let loc = document.getElementById(`loc-${locIndex}`);
         let dragons = loc.querySelectorAll('.dragon-card');
         if (dragons.length < 2) { 
-            resolve(); 
-            return; 
-        }
-        
-        let header = document.getElementById('action-header'); 
-        header.style.display = 'block';
-        header.innerHTML = `Нажмите на 2 драконов для обмена или <button onclick="cancelSwap()" style="margin-left:15px; cursor:pointer;">Отказаться</button>`;
-        loc.classList.add('swap-mode'); 
-        swapState = { active: true, resolveFunc: resolve, selected: [], dragonsList: dragons, locElement: loc };
-        
-        dragons.forEach(d => {
-            d.onclick = function() {
-                if (!swapState.active) return;
-                
-                this.classList.toggle('swap-selected');
-                
-                if (this.classList.contains('swap-selected')) {
-                    swapState.selected.push(this);
-                } else {
-                    swapState.selected = swapState.selected.filter(el => el !== this);
+            filter(el => el !== this);
                 }
                 
                 if (swapState.selected.length === 2) {
