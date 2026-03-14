@@ -187,7 +187,7 @@ function getLiveScores() {
     return results;
 }
 
-// === ОТРИСОВКА ИНТЕРФЕЙСА ===
+// === ОТРИСОВКА ===
 function renderInventories() {
     let currentScores = getLiveScores(); let html = '';
     for (let [id, p] of Object.entries(gameState.players)) {
@@ -284,6 +284,67 @@ function showGenericModal(title, desc, htmlContent) {
     });
 }
 
+// ==== ВОТ ОН, ВОССТАНОВЛЕННЫЙ БЛОК УСИЛЕНИЯ (ТРЕУГОЛКИ) ====
+let upgradeResolve = null;
+function showUpgradeModal(teamId) {
+    return new Promise(resolve => {
+        upgradeResolve = resolve;
+        let availIndices = gameState.players[teamId].avail.map((a, i) => a ? i : -1).filter(i => i !== -1);
+        if (availIndices.length === 0) { resolve(); return; } 
+        let html = '';
+        availIndices.forEach(i => { 
+            html += `<div class="hunter-disk team-blue" style="position:relative; cursor:pointer;" onclick="window.applyUpgrade(${i})">${gameState.players[teamId].powers[i]}</div>`; 
+        });
+        document.getElementById('upgrade-options').innerHTML = html; 
+        document.getElementById('upgrade-modal').style.display = 'block';
+    });
+}
+window.applyUpgrade = function(index) {
+    gameState.players.blue.powers[index]++; 
+    document.getElementById('upgrade-modal').style.display = 'none';
+    renderInventories(); 
+    if (upgradeResolve) upgradeResolve();
+};
+window.cancelUpgrade = function() { 
+    document.getElementById('upgrade-modal').style.display = 'none'; 
+    if (upgradeResolve) upgradeResolve(); 
+};
+// ==============================================================
+
+let swapState = { active: false, resolveFunc: null, selected: [] };
+function startSwap(locIndex) {
+    return new Promise(resolve => {
+        let loc = document.getElementById(`loc-${locIndex}`);
+        let dragons = loc.querySelectorAll('.dragon-card');
+        if (dragons.length < 2) { resolve(); return; }
+        
+        let header = document.getElementById('action-header'); header.style.display = 'block';
+        header.innerHTML = `Нажмите на 2 драконов для обмена или <button onclick="cancelSwap()" style="margin-left:15px; cursor:pointer;">Отказаться</button>`;
+        loc.classList.add('swap-mode'); swapState = { active: true, resolveFunc: resolve, selected: [], dragonsList: dragons, locElement: loc };
+        
+        dragons.forEach(d => {
+            d.onclick = function() {
+                if (!swapState.active) return;
+                this.classList.toggle('swap-selected');
+                if (this.classList.contains('swap-selected')) swapState.selected.push(this);
+                else swapState.selected = swapState.selected.filter(el => el !== this);
+                if (swapState.selected.length === 2) {
+                    let parent = swapState.selected[0].parentNode;
+                    let n1 = swapState.selected[0]; let n2 = swapState.selected[1]; let s1 = n1.nextSibling === n2 ? n1 : n1.nextSibling;
+                    n2.parentNode.insertBefore(n1, n2); parent.insertBefore(n2, s1);
+                    endSwapUI();
+                }
+            };
+        });
+    });
+}
+window.cancelSwap = function() { if (swapState.active) endSwapUI(); };
+function endSwapUI() {
+    swapState.active = false; swapState.selected.forEach(el => el.classList.remove('swap-selected'));
+    swapState.locElement.classList.remove('swap-mode'); swapState.dragonsList.forEach(d => d.onclick = null);
+    document.getElementById('action-header').style.display = 'none'; swapState.resolveFunc();
+}
+
 function botRecolorWhite(team) {
     let whites = gameState.players[team].trophies.filter(t => t.color === 'white');
     if (whites.length === 0) return;
@@ -372,7 +433,7 @@ function renderBoard() {
                 inner += `<div class="card treasure-card" title="${tr.desc}" style="position:absolute; width:65px; height:90px; z-index:1;"><div style="font-size:16px; margin-top:10px;">${tr.short}</div><div class="card-title" style="font-size:8px;">${tr.name}</div></div>`;
                 extraData += ` data-obj='${JSON.stringify(tr)}'`;
             } else if (isLoot) inner = `<div style="color:#7f8c8d; font-size:10px;">Пусто</div>`; 
-            slotsHtml += `<div class="slot" id="slot-${locIndex}-${slotIndex}" ${extraData} onclick="placeDisk(this, ${locIndex})">${inner}</div>`;
+            slotsHtml += `<div class="slot" id="slot-${locIndex}-${slotIndex}" ${extraData} onclick="window.placeDisk(this, ${locIndex})">${inner}</div>`;
         });
         html += `<div class="location" id="loc-${locIndex}"><div class="dragons-area">${dragonsHtml}</div><div class="slots-area">${slotsHtml}</div></div>`;
     });
@@ -382,7 +443,7 @@ function renderBoard() {
 function renderHand() {
     let html = '';
     gameState.players.blue.powers.forEach((power, index) => {
-        if (gameState.players.blue.avail[index]) html += `<div class="hunter-disk team-blue" style="position:relative;" data-index="${index}" data-power="${power}" onclick="selectDisk(this)">${power}</div>`;
+        if (gameState.players.blue.avail[index]) html += `<div class="hunter-disk team-blue" style="position:relative;" data-index="${index}" data-power="${power}" onclick="window.selectDisk(this)">${power}</div>`;
     });
     document.getElementById('player-disks').innerHTML = html;
 }
@@ -535,11 +596,6 @@ async function handleCorvo(team, originalSlot, locIndex) {
 }
 
 let selectedDisk = null;
-window.selectDisk = function(element) {
-    if (gameState.isActionPaused || turnOrder[currentTurnIndex] !== 'blue') return;
-    document.querySelectorAll('.hunter-disk').forEach(el => el.classList.remove('selected'));
-    selectedDisk = element; element.classList.add('selected');
-};
 
 window.placeDisk = async function(slotElement, locIndex) {
     if (gameState.isActionPaused || turnOrder[currentTurnIndex] !== 'blue' || !selectedDisk || slotElement.querySelector('.hunter-disk')) return;
@@ -746,34 +802,7 @@ window.resolvePhaseAsync = async function() {
     document.getElementById('next-round-btn').style.display = 'block';
 };
 
-// === ВЕРНУВШИЙСЯ ПОДСЧЕТ ОЧКОВ ===
-function calculateFinalScores() {
-    let scoresDict = getLiveScores();
-    let results = Object.values(scoresDict);
-
-    results.sort((a,b) => b.total - a.total); 
-    let html = '';
-    results.forEach(r => { 
-        html += `<tr>
-            <td style="font-weight:bold; color:var(--team-${r.id});">${r.name}</td>
-            <td>${r.teamPower}</td>
-            <td>${r.dragPts}</td>
-            <td>${r.contPts}</td>
-            <td>${r.trPts}</td>
-            <td>+${r.bonusPts}</td>
-            <td class="total-col">${r.total}</td>
-        </tr>`; 
-    });
-    
-    document.getElementById('score-body').innerHTML = html; 
-    document.getElementById('score-modal').style.display = 'block';
-}
-
 window.nextRound = function() { 
-    if (gameState.round === 5) { 
-        calculateFinalScores(); 
-        return; 
-    } 
-    gameState.round++; 
-    startRound(); 
+    if (gameState.round === 5) { calculateFinalScores(); return; } 
+    gameState.round++; startRound(); 
 };
